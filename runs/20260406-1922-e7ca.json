@@ -1,0 +1,17 @@
+{
+  "id": "20260406-1922-e7ca",
+  "prompt": "Harden preview deployment workflows against malicious dispatch events.\n\n## Security Problems\n\n1. The balance-preview workflow (balance-preview.yml) accepts an arbitrary image from client_payload.image and deploys it directly with `fly deploy --image`. An attacker who can send a repository_dispatch event could deploy any container image to the gunk-dev Fly org.\n\n2. No environment protection rules are configured on any GitHub environment (preview, staging, production, dns).\n\n3. Preview workflows should validate that dispatch events originate from expected sources.\n\n## What to Fix\n\n### 1. Validate image origin in balance-preview.yml\n\nAdd validation that the image reference matches the expected pattern before deploying:\n```bash\n# Only allow images from Fly registry for balance apps\nif [[ ! \"$IMAGE\" =~ ^registry\\.fly\\.io/balance-(preview|staging|prod) ]]; then\n  echo \"Error: image must be from registry.fly.io/balance-*\" \u003e\u00262\n  exit 1\nfi\n```\n\nAdd this check BEFORE the `fly deploy` step in both the deploy and any image-consuming steps. Apply the same pattern to any other workflow that accepts images from client_payload.\n\n### 2. Add origin validation to ALL dispatch-triggered workflows\n\nFor preview.yml (flux-preview) and balance-preview.yml (balance-preview):\n- Validate that client_payload.pr_number is a positive integer (not arbitrary input)\n- Sanitize all client_payload values before using in shell commands\n\nFor balance-staging.yml and any staging workflows:\n- Same image origin validation as above\n\n### 3. Add deployment branch policies via workflow changes\n\nSince GitHub environment protection rules can't be set via code, add explicit checks in workflows:\n- For staging/production workflows: verify they're running on the default branch\n- Add `if: github.ref == 'refs/heads/main'` conditions where appropriate\n\n### Key Files\n- .github/workflows/balance-preview.yml — image validation needed\n- .github/workflows/balance-staging.yml — image validation needed  \n- .github/workflows/preview.yml — input sanitization needed\n- .github/workflows/prod.yml — branch check\n- .github/workflows/web-prod.yml — branch check\n- scripts/deploy.sh — validate inputs\n\n### Acceptance Criteria\n- balance-preview.yml rejects images not from registry.fly.io/balance-*\n- All client_payload values are validated/sanitized\n- PR numbers are validated as positive integers\n- No workflow uses unsanitized client_payload in shell commands\n- All existing CI checks pass\n- Run CI validation before creating the PR",
+  "issue": null,
+  "branch": "agent/20260406-1922-e7ca",
+  "worktree": "/tmp/klaus-sessions/infra/20260406-1922-e7ca",
+  "tmux_pane": "%21",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-1645-30f4/logs/20260406-1922-e7ca.jsonl",
+  "created_at": "2026-04-06T19:22:18-04:00",
+  "cost_usd": 0.5527882500000001,
+  "duration_ms": 140518,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/8",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260406-1922-e7ca"
+}
