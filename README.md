@@ -134,16 +134,18 @@ cue export ./apps/web -t preview -t appName=gunk-web-preview-42 -e preview --out
 ```sh
 # Preview (requires PR number)
 ./scripts/deploy.sh flux preview 42
-./scripts/deploy.sh balance preview 42
+./scripts/deploy.sh balance preview 42 registry.fly.io/balance-preview-42:sha
+./scripts/deploy.sh web preview 42 registry.fly.io/gunk-web-preview-42:sha
 
 # Staging
 ./scripts/deploy.sh flux staging
-./scripts/deploy.sh balance staging
+./scripts/deploy.sh balance staging "" registry.fly.io/balance-staging:sha
+./scripts/deploy.sh web staging "" registry.fly.io/gunk-web-staging:sha
 
 # Production
 ./scripts/deploy.sh flux prod
-./scripts/deploy.sh balance prod
-./scripts/deploy.sh web prod
+./scripts/deploy.sh balance prod "" registry.fly.io/balance-prod:sha
+./scripts/deploy.sh web prod "" registry.fly.io/gunk-web-prod:sha
 ```
 
 Requires `FLY_API_TOKEN` in the environment and membership in the `gunk-dev` Fly org.

@@ -6,9 +6,10 @@ if [[ -z "${FLY_API_TOKEN:-}" ]]; then
   exit 1
 fi
 
-APP_TYPE="${1:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number]}"
-ENV="${2:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number]}"
+APP_TYPE="${1:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number] [image]}"
+ENV="${2:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number] [image]}"
 PR_NUMBER="${3:-}"
+IMAGE="${4:-}"
 
 case "$APP_TYPE" in
   flux|balance|web) ;;
@@ -18,21 +19,27 @@ case "$APP_TYPE" in
     ;;
 esac
 
+# Map app type to Fly app name prefix (web -> gunk-web, others unchanged)
+case "$APP_TYPE" in
+  web) APP_PREFIX="gunk-web" ;;
+  *)   APP_PREFIX="$APP_TYPE" ;;
+esac
+
 case "$ENV" in
   preview)
     if [[ -z "$PR_NUMBER" ]]; then
       echo "Error: PR number required for preview deployments" >&2
       exit 1
     fi
-    APP_NAME="${APP_TYPE}-preview-${PR_NUMBER}"
+    APP_NAME="${APP_PREFIX}-preview-${PR_NUMBER}"
     CUE_TAG="preview"
     ;;
   staging)
-    APP_NAME="${APP_TYPE}-staging"
+    APP_NAME="${APP_PREFIX}-staging"
     CUE_TAG="staging"
     ;;
   prod)
-    APP_NAME="${APP_TYPE}-prod"
+    APP_NAME="${APP_PREFIX}-prod"
     CUE_TAG="prod"
     ;;
   *)
@@ -53,22 +60,36 @@ else
     --out toml --outfile "${TMPDIR}/fly.toml"
 fi
 
-echo "==> Building OCI image..."
-nix build .#oci-image
-IMAGE_PATH="$(readlink -f result)"
-
 echo "==> Ensuring app ${APP_NAME} exists in org gunk-dev..."
 if ! fly apps list --org gunk-dev | grep -q "^${APP_NAME}"; then
   fly apps create "${APP_NAME}" --org gunk-dev
 fi
 
-echo "==> Deploying ${APP_NAME}..."
-fly deploy \
-  --config "${TMPDIR}/fly.toml" \
-  --app "${APP_NAME}" \
-  --local-only \
-  --image-label "latest" \
-  --docker-image "file://${IMAGE_PATH}"
+if [[ "$APP_TYPE" == "flux" ]]; then
+  echo "==> Building OCI image..."
+  nix build .#oci-image
+  IMAGE_PATH="$(readlink -f result)"
+
+  echo "==> Deploying ${APP_NAME}..."
+  fly deploy \
+    --config "${TMPDIR}/fly.toml" \
+    --app "${APP_NAME}" \
+    --local-only \
+    --image-label "latest" \
+    --docker-image "file://${IMAGE_PATH}"
+else
+  if [[ -z "$IMAGE" ]]; then
+    echo "Error: image argument required for ${APP_TYPE} deployments" >&2
+    echo "Usage: deploy.sh ${APP_TYPE} ${ENV} [pr-number] <image>" >&2
+    exit 1
+  fi
+
+  echo "==> Deploying ${APP_NAME} with image ${IMAGE}..."
+  fly deploy \
+    --config "${TMPDIR}/fly.toml" \
+    --app "${APP_NAME}" \
+    --image "${IMAGE}"
+fi
 
 echo "==> Configuring custom domains..."
 if [[ "$ENV" == "preview" ]]; then
