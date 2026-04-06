@@ -30,6 +30,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
+          DEPLOY_IMAGE: ${{ github.event.client_payload.image }}
         run: |
           APP_NAME="balance-preview-${PR_NUMBER}"
 
@@ -40,7 +41,7 @@ jobs:
           fly deploy \
             --config fly.toml \
             --app "${APP_NAME}" \
-            --image "${{ github.event.client_payload.image }}"
+            --image "${DEPLOY_IMAGE}"
 
       - name: Comment preview URL on PR
         env:
