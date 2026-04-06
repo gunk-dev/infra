@@ -32,14 +32,14 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
 
       - name: Generate fly.toml
-        run: cue export ./apps/balance -t prod -e prod --out toml > fly.toml
+        run: nix develop -c cue export ./apps/balance -t prod -e prod --out toml > fly.toml
 
       - name: Deploy to Fly.io
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           DEPLOY_IMAGE: ${{ inputs.image }}
         run: |
-          fly deploy \
+          nix develop -c fly deploy \
             --config fly.toml \
             --app balance-prod \
             --image "${DEPLOY_IMAGE}"
@@ -48,8 +48,8 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          DOMAINS=$(cue export ./apps/balance -t prod -e prod --out json | jq -r '.custom_domains[]? // empty')
+          DOMAINS=$(nix develop -c cue export ./apps/balance -t prod -e prod --out json | jq -r '.custom_domains[]? // empty')
           for domain in $DOMAINS; do
             echo "Configuring certificate for $domain"
-            fly certs create "$domain" -a balance-prod || true
+            nix develop -c fly certs create "$domain" -a balance-prod || true
           done

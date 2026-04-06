@@ -48,25 +48,14 @@ jobs:
         run: |
           APP_NAME="balance-preview-${PR_NUMBER}"
 
-          if ! fly apps list --org gunk-dev | grep -q "^${APP_NAME}"; then
-            fly apps create "${APP_NAME}" --org gunk-dev
+          if ! nix develop -c fly apps list --org gunk-dev | grep -q "^${APP_NAME}"; then
+            nix develop -c fly apps create "${APP_NAME}" --org gunk-dev
           fi
 
-          fly deploy \
+          nix develop -c fly deploy \
             --config fly.toml \
             --app "${APP_NAME}" \
             --image "${DEPLOY_IMAGE}"
-
-      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
-        with:
-          go-version-file: go.mod
-
-      - name: Create preview DNS record
-        env:
-          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
-          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
-          PR_NUMBER: ${{ github.event.client_payload.pr_number }}
-        run: go run ./cmd/dns preview create balance "${PR_NUMBER}"
 
       - name: Configure preview domain
         env:
@@ -74,7 +63,7 @@ jobs:
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
         run: |
           APP_NAME="balance-preview-${PR_NUMBER}"
-          fly certs create "preview-${PR_NUMBER}.balance.gunk.dev" -a "${APP_NAME}" || true
+          nix develop -c fly certs create "preview-${PR_NUMBER}.balance.gunk.dev" -a "${APP_NAME}" || true
 
       - name: Comment preview URL on PR
         env:
@@ -85,10 +74,11 @@ jobs:
             --repo patflynn/balance \
             --body "Preview deployed: https://preview-${PR_NUMBER}.balance.gunk.dev"
 
-  cleanup:
-    if: github.event.action == 'balance-preview-cleanup'
+  deploy-dns:
+    if: github.event.action == 'balance-preview'
+    needs: deploy
     runs-on: ubuntu-latest
-    environment: preview
+    environment: dns
     permissions:
       contents: read
     steps:
@@ -105,7 +95,36 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
+      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+        with:
+          go-version-file: go.mod
+
+      - name: Create preview DNS record
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          PR_NUMBER: ${{ github.event.client_payload.pr_number }}
+        run: go run ./cmd/dns preview create balance "${PR_NUMBER}"
+
+  cleanup-dns:
+    if: github.event.action == 'balance-preview-cleanup'
+    runs-on: ubuntu-latest
+    environment: dns
+    permissions:
+      contents: read
+    steps:
+      - name: Validate inputs
+        env:
+          PR_NUMBER: ${{ github.event.client_payload.pr_number }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Error: pr_number must be a positive integer, got '${PR_NUMBER}'" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
         with:
@@ -118,9 +137,27 @@ jobs:
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
         run: go run ./cmd/dns preview delete balance "${PR_NUMBER}"
 
+  cleanup-app:
+    if: github.event.action == 'balance-preview-cleanup'
+    runs-on: ubuntu-latest
+    environment: preview
+    permissions:
+      contents: read
+    steps:
+      - name: Validate inputs
+        env:
+          PR_NUMBER: ${{ github.event.client_payload.pr_number }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Error: pr_number must be a positive integer, got '${PR_NUMBER}'" >&2
+            exit 1
+          fi
+
+      - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
+
       - name: Destroy preview app
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
         run: |
-          fly apps destroy "balance-preview-${PR_NUMBER}" -y
+          nix develop -c fly apps destroy "balance-preview-${PR_NUMBER}" -y
