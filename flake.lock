@@ -54,6 +54,24 @@
         "type": "github"
       }
     },
+    "flake-utils_4": {
+      "inputs": {
+        "systems": "systems_4"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "flux": {
       "inputs": {
         "flake-utils": "flake-utils_2",
@@ -71,6 +89,25 @@
       "original": {
         "owner": "gunk-dev",
         "repo": "flux",
+        "type": "github"
+      }
+    },
+    "gunk-web": {
+      "inputs": {
+        "flake-utils": "flake-utils_4",
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1775517565,
+        "narHash": "sha256-pZDVGTTwHl+MGMPlfFRbVnmt22+y9f8DXhAYWfLuSzo=",
+        "owner": "gunk-dev",
+        "repo": "gunk-web",
+        "rev": "1f240e9fd7b3d65a9f56f88f14fda410c656ae3a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gunk-dev",
+        "repo": "gunk-web",
         "type": "github"
       }
     },
@@ -114,6 +151,22 @@
     },
     "nixpkgs_2": {
       "locked": {
+        "lastModified": 1775036866,
+        "narHash": "sha256-ZojAnPuCdy657PbTq5V0Y+AHKhZAIwSIT2cb8UgAz/U=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "6201e203d09599479a3b3450ed24fa81537ebc4e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_3": {
+      "locked": {
         "lastModified": 1775403759,
         "narHash": "sha256-cGyKiTspHEUx3QwAnV3RfyT+VOXhHLs+NEr17HU34Wo=",
         "owner": "NixOS",
@@ -132,7 +185,8 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "flux": "flux",
-        "nixpkgs": "nixpkgs_2"
+        "gunk-web": "gunk-web",
+        "nixpkgs": "nixpkgs_3"
       }
     },
     "systems": {
@@ -166,6 +220,21 @@
       }
     },
     "systems_3": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_4": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",

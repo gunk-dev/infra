@@ -69,36 +69,52 @@ if ! fly apps list --org gunk-dev | grep -q "^${APP_NAME}"; then
   fly apps create "${APP_NAME}" --org gunk-dev
 fi
 
-if [[ "$APP_TYPE" == "flux" ]]; then
-  echo "==> Building OCI image..."
-  nix build .#oci-image
-  IMAGE_PATH="$(readlink -f result)"
+case "$APP_TYPE" in
+  flux)
+    echo "==> Building OCI image..."
+    nix build .#oci-image
+    IMAGE_PATH="$(readlink -f result)"
 
-  echo "==> Deploying ${APP_NAME}..."
-  fly deploy \
-    --config "${TMPDIR}/fly.toml" \
-    --app "${APP_NAME}" \
-    --local-only \
-    --image-label "latest" \
-    --docker-image "file://${IMAGE_PATH}"
-else
-  if [[ -z "$IMAGE" ]]; then
-    echo "Error: image argument required for ${APP_TYPE} deployments" >&2
-    echo "Usage: deploy.sh ${APP_TYPE} ${ENV} [pr-number] <image>" >&2
-    exit 1
-  fi
+    echo "==> Deploying ${APP_NAME}..."
+    fly deploy \
+      --config "${TMPDIR}/fly.toml" \
+      --app "${APP_NAME}" \
+      --local-only \
+      --image-label "latest" \
+      --docker-image "file://${IMAGE_PATH}"
+    ;;
+  web)
+    echo "==> Building OCI image..."
+    nix build .#web-oci-image
+    IMAGE_PATH="$(readlink -f result)"
 
-  if [[ ! "$IMAGE" =~ ^registry\.fly\.io/${APP_PREFIX}-(preview(-[1-9][0-9]*)?|staging|prod)(:|$) ]]; then
-    echo "Error: image must be from registry.fly.io/${APP_PREFIX}-*" >&2
-    exit 1
-  fi
+    echo "==> Deploying ${APP_NAME}..."
+    fly deploy \
+      --config "${TMPDIR}/fly.toml" \
+      --app "${APP_NAME}" \
+      --local-only \
+      --image-label "latest" \
+      --docker-image "file://${IMAGE_PATH}"
+    ;;
+  *)
+    if [[ -z "$IMAGE" ]]; then
+      echo "Error: image argument required for ${APP_TYPE} deployments" >&2
+      echo "Usage: deploy.sh ${APP_TYPE} ${ENV} [pr-number] <image>" >&2
+      exit 1
+    fi
 
-  echo "==> Deploying ${APP_NAME} with image ${IMAGE}..."
-  fly deploy \
-    --config "${TMPDIR}/fly.toml" \
-    --app "${APP_NAME}" \
-    --image "${IMAGE}"
-fi
+    if [[ ! "$IMAGE" =~ ^registry\.fly\.io/${APP_PREFIX}-(preview(-[1-9][0-9]*)?|staging|prod)(:|$) ]]; then
+      echo "Error: image must be from registry.fly.io/${APP_PREFIX}-*" >&2
+      exit 1
+    fi
+
+    echo "==> Deploying ${APP_NAME} with image ${IMAGE}..."
+    fly deploy \
+      --config "${TMPDIR}/fly.toml" \
+      --app "${APP_NAME}" \
+      --image "${IMAGE}"
+    ;;
+esac
 
 echo "==> Configuring custom domains..."
 if [[ "$ENV" == "preview" ]]; then
