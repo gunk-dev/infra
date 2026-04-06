@@ -2,7 +2,7 @@
 package flux
 
 preview: _base & {
-	app:            string | *"flux-preview"
+	app:            string | *"flux-preview" @tag(appName)
 	primary_region: "iad"
 
 	http_service: {

@@ -7,8 +7,15 @@
     flux.url = "github:patflynn/flux";
   };
 
-  outputs = { self, nixpkgs, flake-utils, flux }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      flux,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         fluxAssets = flux.packages.${system}.default;
@@ -28,9 +35,16 @@
             cp ${caddyfile} etc/caddy/Caddyfile
           '';
           config = {
-            Cmd = [ "${pkgs.caddy}/bin/caddy" "run" "--config" "/etc/caddy/Caddyfile" "--adapter" "caddyfile" ];
+            Cmd = [
+              "${pkgs.caddy}/bin/caddy"
+              "run"
+              "--config"
+              "/etc/caddy/Caddyfile"
+              "--adapter"
+              "caddyfile"
+            ];
             ExposedPorts = {
-              "8080/tcp" = {};
+              "8080/tcp" = { };
             };
           };
         };
@@ -46,6 +60,7 @@
             pkgs.flyctl
             pkgs.cue
             pkgs.skopeo
+            pkgs.nixfmt
           ];
         };
       }

@@ -2,11 +2,13 @@ name: Deploy Preview
 
 on:
   repository_dispatch:
-    types: [flux-preview]
+    types: [flux-preview, flux-preview-cleanup]
 
 jobs:
   deploy:
+    if: github.event.action == 'flux-preview'
     runs-on: ubuntu-latest
+    environment: preview
     steps:
       - uses: actions/checkout@v4
 
@@ -16,8 +18,7 @@ jobs:
         run: |
           PR_NUMBER="${{ github.event.client_payload.pr_number }}"
           APP_NAME="flux-preview-${PR_NUMBER}"
-          cue export ./apps/flux -t preview -e preview --out toml > fly.toml
-          sed -i "s/^app = .*/app = '${APP_NAME}'/" fly.toml
+          nix develop -c cue export ./apps/flux -t preview -t "appName=${APP_NAME}" -e preview --out toml > fly.toml
 
       - name: Build OCI image
         run: nix build .#oci-image
@@ -51,8 +52,9 @@ jobs:
             --body "Preview deployed: https://${APP_NAME}.fly.dev"
 
   cleanup:
-    if: github.event.client_payload.action == 'closed'
+    if: github.event.action == 'flux-preview-cleanup'
     runs-on: ubuntu-latest
+    environment: preview
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
 

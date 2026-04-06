@@ -12,7 +12,7 @@ Fly.io infrastructure for [Flux](https://github.com/patflynn/flux), managed with
 nix develop
 ```
 
-Provides: `flyctl`, `cue`, `skopeo`
+Provides: `flyctl`, `cue`, `skopeo`, `nixfmt`
 
 ## Build OCI image locally
 
@@ -33,6 +33,12 @@ cue vet ./apps/flux/...
 
 # Export a specific environment
 cue export ./apps/flux -t staging -e staging --out toml
+```
+
+Preview apps accept a `appName` tag for dynamic app naming:
+
+```sh
+cue export ./apps/flux -t preview -t appName=flux-preview-42 -e preview --out toml
 ```
 
 ### Environments
@@ -60,24 +66,44 @@ Requires `FLY_API_TOKEN` in the environment and membership in the `gunk-dev` Fly
 
 ## CI
 
+A CI workflow runs on every pull request and push to main:
+
+- **lint**: `nixfmt --check` and `nix flake check`
+- **validate-cue**: validates CUE schemas and verifies export for all environments
+- **build**: builds the OCI image
+- **zizmor**: security lints GitHub Actions workflows
+
 Deployments are triggered from the [flux repo](https://github.com/patflynn/flux) via `repository_dispatch`:
 
 - **Preview**: `flux-preview` event on PR open/sync — deploys a per-PR preview app, comments the URL on the PR
+- **Preview cleanup**: `flux-preview-cleanup` event on PR close — destroys the preview app
 - **Staging**: `flux-staging` event on merge to main — deploys to `flux-staging`
 - **Production**: Manual `workflow_dispatch` in this repo
+
+### Secrets
+
+Deploy workflows read `FLY_API_TOKEN` from GitHub **environments** (preview, staging, production), not repo-level secrets.
 
 ### Flux repo setup
 
 The flux repo needs to send `repository_dispatch` events to this repo:
 
 ```yaml
-# On PR events
+# On PR open/synchronize
 - uses: peter-evans/repository-dispatch@v3
   with:
     token: ${{ secrets.INFRA_DISPATCH_TOKEN }}
     repository: gunk-dev/infra
     event-type: flux-preview
-    client-payload: '{"pr_number": "${{ github.event.pull_request.number }}", "action": "${{ github.event.action }}"}'
+    client-payload: '{"pr_number": "${{ github.event.pull_request.number }}"}'
+
+# On PR close
+- uses: peter-evans/repository-dispatch@v3
+  with:
+    token: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+    repository: gunk-dev/infra
+    event-type: flux-preview-cleanup
+    client-payload: '{"pr_number": "${{ github.event.pull_request.number }}"}'
 
 # On merge to main
 - uses: peter-evans/repository-dispatch@v3

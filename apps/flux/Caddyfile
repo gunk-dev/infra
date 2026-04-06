@@ -4,9 +4,7 @@
 
 	try_files {path} /index.html
 
-	header /app.js Cache-Control "public, max-age=3600"
-	header /timer.js Cache-Control "public, max-age=3600"
-	header /style.css Cache-Control "public, max-age=3600"
-	header /manifest.json Cache-Control "public, max-age=3600"
+	@assets path *.js *.css *.json
+	header @assets Cache-Control "public, max-age=3600"
 	header /data/* Cache-Control "public, max-age=86400"
 }

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -z "${FLY_API_TOKEN:-}" ]]; then
+  echo "Error: FLY_API_TOKEN is not set" >&2
+  exit 1
+fi
+
 ENV="${1:?Usage: deploy.sh <preview|staging|prod> [pr-number]}"
 PR_NUMBER="${2:-}"
 
@@ -31,12 +36,12 @@ TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
 echo "==> Generating fly.toml for ${APP_NAME}..."
-cue export ./apps/flux -t "${CUE_TAG}" -e "${CUE_TAG}" \
-  --out toml --outfile "${TMPDIR}/fly.toml"
-
-# For preview apps, override the app name with the PR-specific name
 if [[ "$ENV" == "preview" ]]; then
-  sed -i "s/^app = .*/app = '${APP_NAME}'/" "${TMPDIR}/fly.toml"
+  cue export ./apps/flux -t preview -t "appName=${APP_NAME}" -e preview \
+    --out toml --outfile "${TMPDIR}/fly.toml"
+else
+  cue export ./apps/flux -t "${CUE_TAG}" -e "${CUE_TAG}" \
+    --out toml --outfile "${TMPDIR}/fly.toml"
 fi
 
 echo "==> Building OCI image..."
