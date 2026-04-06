@@ -1,0 +1,17 @@
+{
+  "id": "20260406-1314-e058",
+  "prompt": "Add balance app definition to the CUE infrastructure alongside flux.\n\n## Context\ngunk-dev/infra manages Fly.io deployments via CUE. It currently has flux (static PWA served by caddy). We need to add balance — a React+Fastify monorepo app that serves both API endpoints and static files.\n\n## What to create\n\n### 1. apps/balance/base.cue\nShared config for balance app:\n- org: gunk-dev\n- internal_port: 8080\n- http_service with force_https\n- health check GET /api/health expecting 200\n\n### 2. apps/balance/preview.cue\n- app: accepts tag injection for dynamic name (like flux preview)\n- min_machines_running: 0\n- auto_stop_machines: suspend\n- auto_start_machines: true\n- primary_region: iad\n\n### 3. apps/balance/staging.cue\n- app: balance-staging\n- min_machines_running: 1\n- auto_stop_machines: suspend\n- primary_region: iad\n\n### 4. apps/balance/prod.cue\n- app: balance-prod\n- min_machines_running: 1\n- auto_stop_machines: off\n- primary_region: iad\n\n### 5. Update scripts/deploy.sh\nAdd balance as a supported app alongside flux. The script should accept an app parameter (flux or balance) and route to the correct CUE config directory.\n\n### 6. Add CI workflows for balance\nCreate .github/workflows/balance-staging.yml and balance-preview.yml (or make the existing workflows app-aware by accepting the app name as a client_payload parameter).\n\nActually — the better approach is to make the existing staging.yml and preview.yml generic, accepting app name in the repository_dispatch payload:\n- event_type: flux-staging, balance-staging, flux-preview, balance-preview\n- Or a single event_type with app name in client_payload\n\nChoose whichever is cleaner. If using separate event types, create the new workflow files. If making them generic, update the existing ones.\n\n### 7. Update README\nDocument the balance app alongside flux.\n\n## Constraints\n- Run cue vet to validate all CUE files\n- Balance uses the same schema as flux (schema/fly.cue)\n- Balance doesn't need a Caddyfile — it runs its own Fastify server\n- The OCI image for balance will be built in the balance repo itself, not here\n- The infra repo just manages the Fly.io app config and deployment orchestration\n- Run nix flake check and cue vet before committing",
+  "issue": null,
+  "branch": "agent/20260406-1314-e058",
+  "worktree": "/tmp/klaus-sessions/infra/20260406-1314-e058",
+  "tmux_pane": "%19",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-0902-986c/logs/20260406-1314-e058.jsonl",
+  "created_at": "2026-04-06T13:14:49-04:00",
+  "cost_usd": 0.6837645,
+  "duration_ms": 183865,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/3",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260406-1314-e058"
+}
