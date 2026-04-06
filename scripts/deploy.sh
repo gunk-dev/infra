@@ -6,8 +6,17 @@ if [[ -z "${FLY_API_TOKEN:-}" ]]; then
   exit 1
 fi
 
-ENV="${1:?Usage: deploy.sh <preview|staging|prod> [pr-number]}"
-PR_NUMBER="${2:-}"
+APP_TYPE="${1:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number]}"
+ENV="${2:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number]}"
+PR_NUMBER="${3:-}"
+
+case "$APP_TYPE" in
+  flux|balance) ;;
+  *)
+    echo "Error: app must be flux or balance" >&2
+    exit 1
+    ;;
+esac
 
 case "$ENV" in
   preview)
@@ -15,15 +24,15 @@ case "$ENV" in
       echo "Error: PR number required for preview deployments" >&2
       exit 1
     fi
-    APP_NAME="flux-preview-${PR_NUMBER}"
+    APP_NAME="${APP_TYPE}-preview-${PR_NUMBER}"
     CUE_TAG="preview"
     ;;
   staging)
-    APP_NAME="flux-staging"
+    APP_NAME="${APP_TYPE}-staging"
     CUE_TAG="staging"
     ;;
   prod)
-    APP_NAME="flux-prod"
+    APP_NAME="${APP_TYPE}-prod"
     CUE_TAG="prod"
     ;;
   *)
@@ -37,10 +46,10 @@ trap 'rm -rf "$TMPDIR"' EXIT
 
 echo "==> Generating fly.toml for ${APP_NAME}..."
 if [[ "$ENV" == "preview" ]]; then
-  cue export ./apps/flux -t preview -t "appName=${APP_NAME}" -e preview \
+  cue export "./apps/${APP_TYPE}" -t preview -t "appName=${APP_NAME}" -e preview \
     --out toml --outfile "${TMPDIR}/fly.toml"
 else
-  cue export ./apps/flux -t "${CUE_TAG}" -e "${CUE_TAG}" \
+  cue export "./apps/${APP_TYPE}" -t "${CUE_TAG}" -e "${CUE_TAG}" \
     --out toml --outfile "${TMPDIR}/fly.toml"
 fi
 

@@ -45,18 +45,26 @@ jobs:
 
       - name: Validate CUE schemas
         run: |
-          nix develop -c cue vet ./apps/flux -t staging
-          nix develop -c cue vet ./apps/flux -t prod
-          nix develop -c cue vet ./apps/flux -t preview
+          for app in flux balance; do
+            nix develop -c cue vet ./apps/${app} -t staging
+            nix develop -c cue vet ./apps/${app} -t prod
+            nix develop -c cue vet ./apps/${app} -t preview
+          done
 
       - name: Verify staging export
-        run: nix develop -c cue export ./apps/flux -t staging -e staging --out toml > /dev/null
+        run: |
+          nix develop -c cue export ./apps/flux -t staging -e staging --out toml > /dev/null
+          nix develop -c cue export ./apps/balance -t staging -e staging --out toml > /dev/null
 
       - name: Verify prod export
-        run: nix develop -c cue export ./apps/flux -t prod -e prod --out toml > /dev/null
+        run: |
+          nix develop -c cue export ./apps/flux -t prod -e prod --out toml > /dev/null
+          nix develop -c cue export ./apps/balance -t prod -e prod --out toml > /dev/null
 
       - name: Verify preview export
-        run: nix develop -c cue export ./apps/flux -t preview -e preview --out toml > /dev/null
+        run: |
+          nix develop -c cue export ./apps/flux -t preview -e preview --out toml > /dev/null
+          nix develop -c cue export ./apps/balance -t preview -e preview --out toml > /dev/null
 
   build:
     runs-on: ubuntu-latest
