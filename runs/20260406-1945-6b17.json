@@ -1,0 +1,17 @@
+{
+  "id": "20260406-1945-6b17",
+  "prompt": "Fix two issues causing all deploy and preview-cleanup workflows to fail.\n\n## Issue 1: `cue: command not found` in deploy workflows\n\nThe deploy workflows (web-prod.yml, prod.yml, staging.yml) install Nix but then run `cue export` directly without putting CUE on PATH. The CI workflow works because it uses `nix develop -c` but the deploy workflows don't.\n\n**Fix**: Wrap all `cue` commands in `nix develop -c` in these workflow files:\n- .github/workflows/web-prod.yml — the `Generate fly.toml` step\n- .github/workflows/prod.yml — the `Generate fly.toml` and `Configure custom domains` steps (any step using `cue`)\n- .github/workflows/staging.yml — same pattern\n- .github/workflows/balance-prod.yml — if it exists and uses cue\n- .github/workflows/balance-staging.yml — if it exists and uses cue\n\nFor example, change:\n```yaml\n- name: Generate fly.toml\n  run: cue export ./apps/web -t prod -e prod --out toml \u003e fly.toml\n```\nTo:\n```yaml\n- name: Generate fly.toml\n  run: nix develop -c cue export ./apps/web -t prod -e prod --out toml \u003e fly.toml\n```\n\nAlso make sure `fly` commands use `nix develop -c fly` if flyctl isn't installed separately. Check whether the workflows install flyctl directly or rely on the Nix dev shell.\n\nActually, check the existing working CI workflow (.github/workflows/ci.yml) to see how it provides tools. Follow that pattern.\n\n## Issue 2: Porkbun secrets not available in preview cleanup jobs\n\nThe preview cleanup jobs in preview.yml and balance-preview.yml reference `environment: preview`, but the Porkbun API keys (PORKBUN_API_KEY, PORKBUN_SECRET_KEY) are configured in the `dns` environment, not `preview`.\n\n**Fix options** (pick the simplest):\na) Add PORKBUN_API_KEY and PORKBUN_SECRET_KEY to the `preview` environment too — but this requires manual GitHub UI work, so instead:\nb) Change the DNS-related jobs (create/delete preview DNS records) to use `environment: dns` instead of `environment: preview`. The deploy jobs that need FLY_API_TOKEN stay on `environment: preview`.\n\nThis means splitting jobs that need both FLY and DNS secrets, OR using a two-job approach where the deploy job uses `preview` env and the DNS job uses `dns` env.\n\nLook at how dns.yml (the DNS sync workflow) accesses these secrets — it uses `environment: dns`. Follow that pattern for the DNS steps in preview workflows.\n\n## Affected files\n- .github/workflows/web-prod.yml\n- .github/workflows/prod.yml  \n- .github/workflows/staging.yml\n- .github/workflows/preview.yml (DNS steps need `dns` environment)\n- .github/workflows/balance-preview.yml (DNS steps need `dns` environment)\n- Any other balance deploy workflows\n\n## Acceptance criteria\n- `cue` commands work in deploy workflows (via nix develop or explicit install)\n- Preview cleanup can access Porkbun secrets\n- Existing CI checks still pass\n- Run CI before creating the PR",
+  "issue": null,
+  "branch": "agent/20260406-1945-6b17",
+  "worktree": "/tmp/klaus-sessions/infra/20260406-1945-6b17",
+  "tmux_pane": "%32",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-1645-30f4/logs/20260406-1945-6b17.jsonl",
+  "created_at": "2026-04-06T19:45:19-04:00",
+  "cost_usd": 1.2284146500000002,
+  "duration_ms": 276524,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/10",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260406-1945-6b17"
+}
