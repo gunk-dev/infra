@@ -1,0 +1,17 @@
+{
+  "id": "20260406-1958-f07d",
+  "prompt": "Fix the deploy step in web-prod.yml (and prod.yml for flux while you're at it). The `fly deploy` command fails because `--docker-image \"file://...\"` is not a valid flyctl flag.\n\n## Problem\nThe current deploy step uses:\n```\nfly deploy --docker-image \"file://$(readlink -f result)\" --local-only\n```\n\nBut flyctl's flag is `--image` (or `-i`), and it expects a Docker image reference, not a file path. The Nix build produces a tarball at `result`, not a Docker image loaded into the daemon.\n\n## Fix\nAfter `nix build`, load the OCI tarball into Docker, then reference it:\n\n```bash\n# Load the Nix-built OCI image into Docker\ndocker load \u003c result\n# The image name:tag comes from the Nix buildLayeredImage config\n\n# Deploy using the loaded image\nfly deploy --config fly.toml --app gunk-web-prod --local-only --image gunk-web:latest\n```\n\nNote: The image name and tag are set in flake.nix's `dockerTools.buildLayeredImage`:\n- For gunk-web: `name = \"gunk-web\"; tag = \"latest\";`\n- For flux: `name = \"flux\"; tag = \"latest\";`\n\nSo after `docker load \u003c result`, the image is available as `gunk-web:latest` or `flux:latest`.\n\nBUT WAIT — `--local-only` with `--image` might not work because flyctl expects to build locally from a Dockerfile when using `--local-only`. Instead, the correct approach may be:\n\n1. Load the image into Docker: `docker load \u003c result`\n2. Tag it for the Fly registry: `docker tag gunk-web:latest registry.fly.io/gunk-web-prod:latest`\n3. Push to Fly registry: `docker push registry.fly.io/gunk-web-prod:latest` (needs `fly auth docker` first)\n4. Deploy with: `fly deploy --config fly.toml --app gunk-web-prod --image registry.fly.io/gunk-web-prod:latest`\n\nOR simpler: just use `fly deploy --local-only` with a Dockerfile approach. But since we're using Nix-built images, the Docker load + push approach is correct.\n\nCheck how other Nix+Fly projects handle this. The key steps are:\n1. `nix build .#web-oci-image` (already working)\n2. Load into Docker daemon\n3. Auth with Fly registry (`fly auth docker`)\n4. Tag and push to registry.fly.io\n5. `fly deploy --image registry.fly.io/{app}:tag`\n\n## Files to fix\n- .github/workflows/web-prod.yml — fix Deploy to Fly.io step\n- .github/workflows/prod.yml — same fix for flux (same broken pattern)\n- .github/workflows/staging.yml — if it has the same pattern\n- .github/workflows/balance-prod.yml — check if it has the same issue (balance uses external image, might be different)\n\n## Acceptance criteria\n- web-prod deploy workflow succeeds end-to-end\n- Image is correctly loaded from Nix build and deployed to Fly\n- All CI checks pass",
+  "issue": null,
+  "branch": "agent/20260406-1958-f07d",
+  "worktree": "/tmp/klaus-sessions/infra/20260406-1958-f07d",
+  "tmux_pane": "%33",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-1645-30f4/logs/20260406-1958-f07d.jsonl",
+  "created_at": "2026-04-06T19:58:29-04:00",
+  "cost_usd": 0.27412675,
+  "duration_ms": 69300,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/11",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260406-1958-f07d"
+}
