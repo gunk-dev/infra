@@ -11,9 +11,9 @@ ENV="${2:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number]}"
 PR_NUMBER="${3:-}"
 
 case "$APP_TYPE" in
-  flux|balance) ;;
+  flux|balance|web) ;;
   *)
-    echo "Error: app must be flux or balance" >&2
+    echo "Error: app must be flux, balance, or web" >&2
     exit 1
     ;;
 esac
