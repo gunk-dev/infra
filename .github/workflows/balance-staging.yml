@@ -12,6 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
+      - name: Validate inputs
+        env:
+          DEPLOY_IMAGE: ${{ github.event.client_payload.image }}
+        run: |
+          if [[ ! "$DEPLOY_IMAGE" =~ ^registry\.fly\.io/balance-(preview(-[1-9][0-9]*)?|staging|prod)(:|$) ]]; then
+            echo "Error: image must be from registry.fly.io/balance-*" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           persist-credentials: false
