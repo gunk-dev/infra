@@ -70,4 +70,17 @@ fly deploy \
   --image-label "latest" \
   --docker-image "file://${IMAGE_PATH}"
 
+echo "==> Configuring custom domains..."
+if [[ "$ENV" == "preview" ]]; then
+  DOMAIN="preview-${PR_NUMBER}.${APP_TYPE}.gunk.dev"
+  echo "Configuring certificate for $DOMAIN"
+  fly certs create "$DOMAIN" -a "${APP_NAME}" || true
+else
+  DOMAINS=$(cue export "./apps/${APP_TYPE}" -t "${CUE_TAG}" -e "${CUE_TAG}" --out json | jq -r '.custom_domains[]? // empty')
+  for domain in $DOMAINS; do
+    echo "Configuring certificate for $domain"
+    fly certs create "$domain" -a "${APP_NAME}" || true
+  done
+fi
+
 echo "==> Deployed: https://${APP_NAME}.fly.dev"
