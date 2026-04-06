@@ -1,6 +1,6 @@
 # infra
 
-Fly.io infrastructure for [Flux](https://github.com/patflynn/flux) and [Balance](https://github.com/patflynn/balance), managed with CUE and Nix.
+Fly.io infrastructure for [Flux](https://github.com/patflynn/flux), [Balance](https://github.com/patflynn/balance), and [Web](https://github.com/gunk-dev/gunk-web) (gunk.dev), managed with CUE and Nix.
 
 ## Prerequisites
 
@@ -23,6 +23,10 @@ Static PWA served by Caddy on port 8080. The OCI image is built in this repo via
 ### Balance
 
 React + Fastify monorepo app serving both API endpoints and static files on port 8080. The OCI image is built in the [balance repo](https://github.com/patflynn/balance) and passed to deploy workflows via `client_payload.image`.
+
+### Web
+
+Static site for gunk.dev served by Caddy on port 8080. The OCI image is built in the [gunk-web repo](https://github.com/gunk-dev/gunk-web) and passed to deploy workflows via `inputs.image`. Serves the apex domain (`gunk.dev`) and `www.gunk.dev`.
 
 ## DNS Management
 
@@ -83,10 +87,12 @@ All Fly.io configuration lives in CUE. `fly.toml` is never checked in — it's g
 # Validate all environments for an app
 cue vet ./apps/flux/...
 cue vet ./apps/balance/...
+cue vet ./apps/web/...
 
 # Export a specific environment
 cue export ./apps/flux -t staging -e staging --out toml
 cue export ./apps/balance -t staging -e staging --out toml
+cue export ./apps/web -t staging -e staging --out toml
 ```
 
 Preview apps accept an `appName` tag for dynamic app naming:
@@ -94,6 +100,7 @@ Preview apps accept an `appName` tag for dynamic app naming:
 ```sh
 cue export ./apps/flux -t preview -t appName=flux-preview-42 -e preview --out toml
 cue export ./apps/balance -t preview -t appName=balance-preview-42 -e preview --out toml
+cue export ./apps/web -t preview -t appName=gunk-web-preview-42 -e preview --out toml
 ```
 
 ### Environments
@@ -114,20 +121,31 @@ cue export ./apps/balance -t preview -t appName=balance-preview-42 -e preview --
 | staging | `balance-staging` | suspend | 1 |
 | prod | `balance-prod` | off | 1 |
 
+#### Web
+
+| Environment | App name | auto_stop | min_machines |
+|---|---|---|---|
+| preview | `gunk-web-preview-{pr}` | suspend | 0 |
+| staging | `gunk-web-staging` | suspend | 1 |
+| prod | `gunk-web-prod` | off | 1 |
+
 ## Deploy
 
 ```sh
 # Preview (requires PR number)
 ./scripts/deploy.sh flux preview 42
-./scripts/deploy.sh balance preview 42
+./scripts/deploy.sh balance preview 42 registry.fly.io/balance-preview-42:sha
+./scripts/deploy.sh web preview 42 registry.fly.io/gunk-web-preview-42:sha
 
 # Staging
 ./scripts/deploy.sh flux staging
-./scripts/deploy.sh balance staging
+./scripts/deploy.sh balance staging "" registry.fly.io/balance-staging:sha
+./scripts/deploy.sh web staging "" registry.fly.io/gunk-web-staging:sha
 
 # Production
 ./scripts/deploy.sh flux prod
-./scripts/deploy.sh balance prod
+./scripts/deploy.sh balance prod "" registry.fly.io/balance-prod:sha
+./scripts/deploy.sh web prod "" registry.fly.io/gunk-web-prod:sha
 ```
 
 Requires `FLY_API_TOKEN` in the environment and membership in the `gunk-dev` Fly org.
@@ -137,7 +155,7 @@ Requires `FLY_API_TOKEN` in the environment and membership in the `gunk-dev` Fly
 A CI workflow runs on every pull request and push to main:
 
 - **lint**: `nixfmt --check` and `nix flake check`
-- **validate-cue**: validates CUE schemas and verifies export for all environments (flux and balance)
+- **validate-cue**: validates CUE schemas and verifies export for all environments (flux, balance, and web)
 - **build**: builds the OCI image (flux)
 - **zizmor**: security lints GitHub Actions workflows
 
@@ -157,6 +175,12 @@ Triggered from the [balance repo](https://github.com/patflynn/balance) via `repo
 - **Preview**: `balance-preview` event on PR open/sync — deploys a per-PR preview app, comments the URL on the PR
 - **Preview cleanup**: `balance-preview-cleanup` event on PR close — destroys the preview app
 - **Staging**: `balance-staging` event on merge to main — deploys to `balance-staging`
+- **Production**: Manual `workflow_dispatch` in this repo (requires `image` input)
+
+### Web deployments
+
+The [gunk-web repo](https://github.com/gunk-dev/gunk-web) builds its own OCI image.
+
 - **Production**: Manual `workflow_dispatch` in this repo (requires `image` input)
 
 ### Secrets

@@ -45,7 +45,7 @@ jobs:
 
       - name: Validate CUE schemas
         run: |
-          for app in flux balance; do
+          for app in flux balance web; do
             nix develop -c cue vet ./apps/${app} -t staging
             nix develop -c cue vet ./apps/${app} -t prod
             nix develop -c cue vet ./apps/${app} -t preview
@@ -55,16 +55,19 @@ jobs:
         run: |
           nix develop -c cue export ./apps/flux -t staging -e staging --out toml > /dev/null
           nix develop -c cue export ./apps/balance -t staging -e staging --out toml > /dev/null
+          nix develop -c cue export ./apps/web -t staging -e staging --out toml > /dev/null
 
       - name: Verify prod export
         run: |
           nix develop -c cue export ./apps/flux -t prod -e prod --out toml > /dev/null
           nix develop -c cue export ./apps/balance -t prod -e prod --out toml > /dev/null
+          nix develop -c cue export ./apps/web -t prod -e prod --out toml > /dev/null
 
       - name: Verify preview export
         run: |
           nix develop -c cue export ./apps/flux -t preview -e preview --out toml > /dev/null
           nix develop -c cue export ./apps/balance -t preview -e preview --out toml > /dev/null
+          nix develop -c cue export ./apps/web -t preview -e preview --out toml > /dev/null
 
       - name: Validate DNS config
         run: |

@@ -1,0 +1,45 @@
+name: Deploy Web Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Container image to deploy (e.g. registry.fly.io/gunk-web-staging:latest)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          persist-credentials: false
+
+      - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
+
+      - name: Generate fly.toml
+        run: cue export ./apps/web -t prod -e prod --out toml > fly.toml
+
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          DEPLOY_IMAGE: ${{ inputs.image }}
+        run: |
+          fly deploy \
+            --config fly.toml \
+            --app gunk-web-prod \
+            --image "${DEPLOY_IMAGE}"
+
+      - name: Configure custom domains
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          DOMAINS=$(cue export ./apps/web -t prod -e prod --out json | jq -r '.custom_domains[]? // empty')
+          for domain in $DOMAINS; do
+            echo "Configuring certificate for $domain"
+            fly certs create "$domain" -a gunk-web-prod || true
+          done
