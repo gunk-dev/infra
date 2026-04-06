@@ -1,0 +1,30 @@
+name: Deploy Staging
+
+on:
+  repository_dispatch:
+    types: [flux-staging]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Generate fly.toml
+        run: cue export ./apps/flux -t staging -e staging --out toml > fly.toml
+
+      - name: Build OCI image
+        run: nix build .#oci-image
+
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          fly deploy \
+            --config fly.toml \
+            --app flux-staging \
+            --local-only \
+            --image-label latest \
+            --docker-image "file://$(readlink -f result)"

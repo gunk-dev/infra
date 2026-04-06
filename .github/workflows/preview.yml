@@ -1,0 +1,64 @@
+name: Deploy Preview
+
+on:
+  repository_dispatch:
+    types: [flux-preview]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Generate fly.toml
+        run: |
+          PR_NUMBER="${{ github.event.client_payload.pr_number }}"
+          APP_NAME="flux-preview-${PR_NUMBER}"
+          cue export ./apps/flux -t preview -e preview --out toml > fly.toml
+          sed -i "s/^app = .*/app = '${APP_NAME}'/" fly.toml
+
+      - name: Build OCI image
+        run: nix build .#oci-image
+
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.client_payload.pr_number }}"
+          APP_NAME="flux-preview-${PR_NUMBER}"
+
+          if ! fly apps list --org gunk-dev | grep -q "^${APP_NAME}"; then
+            fly apps create "${APP_NAME}" --org gunk-dev
+          fi
+
+          fly deploy \
+            --config fly.toml \
+            --app "${APP_NAME}" \
+            --local-only \
+            --image-label latest \
+            --docker-image "file://$(readlink -f result)"
+
+      - name: Comment preview URL on PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.client_payload.pr_number }}"
+          APP_NAME="flux-preview-${PR_NUMBER}"
+          gh pr comment "${PR_NUMBER}" \
+            --repo patflynn/flux \
+            --body "Preview deployed: https://${APP_NAME}.fly.dev"
+
+  cleanup:
+    if: github.event.client_payload.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Destroy preview app
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.client_payload.pr_number }}"
+          fly apps destroy "flux-preview-${PR_NUMBER}" -y
