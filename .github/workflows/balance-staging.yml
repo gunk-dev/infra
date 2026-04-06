@@ -16,7 +16,7 @@ jobs:
         env:
           DEPLOY_IMAGE: ${{ github.event.client_payload.image }}
         run: |
-          if [[ ! "$DEPLOY_IMAGE" =~ ^registry\.fly\.io/balance-(preview|staging|prod)(:|$) ]]; then
+          if [[ ! "$DEPLOY_IMAGE" =~ ^registry\.fly\.io/balance-(preview(-[1-9][0-9]*)?|staging|prod)(:|$) ]]; then
             echo "Error: image must be from registry.fly.io/balance-*" >&2
             exit 1
           fi

@@ -88,7 +88,7 @@ else
     exit 1
   fi
 
-  if [[ ! "$IMAGE" =~ ^registry\.fly\.io/${APP_PREFIX}-(preview|staging|prod)(:|$) ]]; then
+  if [[ ! "$IMAGE" =~ ^registry\.fly\.io/${APP_PREFIX}-(preview(-[1-9][0-9]*)?|staging|prod)(:|$) ]]; then
     echo "Error: image must be from registry.fly.io/${APP_PREFIX}-*" >&2
     exit 1
   fi

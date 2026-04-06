@@ -20,7 +20,7 @@ jobs:
         env:
           DEPLOY_IMAGE: ${{ inputs.image }}
         run: |
-          if [[ ! "$DEPLOY_IMAGE" =~ ^registry\.fly\.io/gunk-web-(preview|staging|prod)(:|$) ]]; then
+          if [[ ! "$DEPLOY_IMAGE" =~ ^registry\.fly\.io/gunk-web-(preview(-[1-9][0-9]*)?|staging|prod)(:|$) ]]; then
             echo "Error: image must be from registry.fly.io/gunk-web-*" >&2
             exit 1
           fi
