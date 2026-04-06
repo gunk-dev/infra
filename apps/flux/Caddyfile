@@ -1,0 +1,10 @@
+:8080 {
+	root * /srv/www
+	file_server
+
+	try_files {path} /index.html
+
+	@assets path *.js *.css *.json
+	header @assets Cache-Control "public, max-age=3600"
+	header /data/* Cache-Control "public, max-age=86400"
+}
