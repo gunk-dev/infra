@@ -1,10 +1,11 @@
 {
-  description = "Fly.io infrastructure for Flux (gunk-dev org)";
+  description = "Fly.io infrastructure for gunk-dev apps";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     flux.url = "github:gunk-dev/flux";
+    gunk-web.url = "github:gunk-dev/gunk-web";
   };
 
   outputs =
@@ -13,12 +14,14 @@
       nixpkgs,
       flake-utils,
       flux,
+      gunk-web,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         fluxAssets = flux.packages.${system}.default;
+        webAssets = gunk-web.packages.${system}.default;
 
         caddyfile = ./apps/flux/Caddyfile;
 
@@ -48,11 +51,39 @@
             };
           };
         };
+
+        webOciImage = pkgs.dockerTools.buildLayeredImage {
+          name = "gunk-web";
+          tag = "latest";
+          contents = [
+            pkgs.caddy
+          ];
+          extraCommands = ''
+            mkdir -p srv/www
+            cp ${webAssets}/index.html srv/www/index.html
+            mkdir -p etc/caddy
+            cp ${webAssets}/Caddyfile etc/caddy/Caddyfile
+          '';
+          config = {
+            Cmd = [
+              "${pkgs.caddy}/bin/caddy"
+              "run"
+              "--config"
+              "/etc/caddy/Caddyfile"
+              "--adapter"
+              "caddyfile"
+            ];
+            ExposedPorts = {
+              "8080/tcp" = { };
+            };
+          };
+        };
       in
       {
         packages = {
           default = ociImage;
           oci-image = ociImage;
+          web-oci-image = webOciImage;
         };
 
         devShells.default = pkgs.mkShell {
