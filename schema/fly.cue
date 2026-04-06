@@ -21,6 +21,7 @@ package schema
 #FlyApp: {
 	app:             string
 	primary_region:  string
+	custom_domains?: [...string]
 	[string]:        _
 
 	http_service: #HttpService

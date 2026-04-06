@@ -33,3 +33,13 @@ jobs:
             --config fly.toml \
             --app balance-prod \
             --image "${DEPLOY_IMAGE}"
+
+      - name: Configure custom domains
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          DOMAINS=$(cue export ./apps/balance -t prod -e prod --out json | jq -r '.custom_domains[]? // empty')
+          for domain in $DOMAINS; do
+            echo "Configuring certificate for $domain"
+            fly certs create "$domain" -a balance-prod || true
+          done

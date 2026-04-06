@@ -58,12 +58,19 @@ jobs:
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
         run: go run ./cmd/dns preview create flux "${PR_NUMBER}"
 
+      - name: Configure preview domain
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          PR_NUMBER: ${{ github.event.client_payload.pr_number }}
+        run: |
+          APP_NAME="flux-preview-${PR_NUMBER}"
+          fly certs create "preview-${PR_NUMBER}.flux.gunk.dev" -a "${APP_NAME}" || true
+
       - name: Comment preview URL on PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
         run: |
-          APP_NAME="flux-preview-${PR_NUMBER}"
           gh pr comment "${PR_NUMBER}" \
             --repo patflynn/flux \
             --body "Preview deployed: https://preview-${PR_NUMBER}.flux.gunk.dev"
