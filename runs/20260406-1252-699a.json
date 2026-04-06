@@ -1,0 +1,19 @@
+{
+  "id": "20260406-1252-699a",
+  "prompt": "CI is failing on PR #1 due to zizmor findings. Fix ALL zizmor issues across all workflow files.\n\n## Current zizmor findings (32 total, 4 categories):\n\n### 1. unpinned-uses (error) — 11 instances\nAll action references must use full 40-char SHA pins, not @v4 or @main tags.\nLook up the correct SHAs for:\n- actions/checkout@v4 → pin to SHA\n- DeterminateSystems/nix-installer-action@main → pin to SHA (use v16: e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d)\n- cachix/install-nix-action → pin to SHA (use v30: 08dcb3a5e62fa31e2da3d490afc4176ef55ecd72)\n- Any other unpinned actions\n\n### 2. excessive-permissions (warning) — 10 instances\nEvery job needs an explicit permissions block. Add minimal permissions:\n- Most jobs only need: contents: read\n- Jobs that comment on PRs also need: pull-requests: write\n- Or set top-level permissions on the workflow\n\n### 3. artipacked (warning) — 7 instances\nThe actions/checkout step persists credentials by default. Add 'persist-credentials: false' to all checkout steps.\n\n### 4. template-injection (error) — 4 instances\nUsing ${{ github.event.client_payload.* }} directly in run: steps is injectable. Store these in env: variables first, then reference via $ENV_VAR in the shell.\n\nFor example, change:\n  run: echo ${{ github.event.client_payload.pr_number }}\nTo:\n  env:\n    PR_NUMBER: ${{ github.event.client_payload.pr_number }}\n  run: echo $PR_NUMBER\n\n## Files to fix\n- .github/workflows/ci.yml\n- .github/workflows/preview.yml\n- .github/workflows/staging.yml\n- .github/workflows/prod.yml\n\n## Verification\nAfter fixing, run: nix run nixpkgs#zizmor -- . --no-online-audits\nThis must exit 0 (or only have informational/low findings, not warnings or errors).\n\n## Constraints\n- Pin ALL action SHAs with full 40-char hashes\n- Do not change any non-workflow files unless necessary\n- Run the full CI locally if possible: nix flake check, cue vet, nix build",
+  "issue": null,
+  "pr": "1",
+  "branch": "agent/20260406-1214-5cec",
+  "worktree": "/tmp/klaus-sessions/infra/20260406-1252-699a",
+  "tmux_pane": "%13",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-0902-986c/logs/20260406-1252-699a.jsonl",
+  "created_at": "2026-04-06T12:52:17-04:00",
+  "cost_usd": 0.25894475,
+  "duration_ms": 88879,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/1",
+  "type": "pr-fix",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260406-1252-699a"
+}
