@@ -66,6 +66,12 @@ jobs:
           nix develop -c cue export ./apps/flux -t preview -e preview --out toml > /dev/null
           nix develop -c cue export ./apps/balance -t preview -e preview --out toml > /dev/null
 
+      - name: Validate DNS records
+        run: nix develop -c cue vet ./dns
+
+      - name: Verify DNS export
+        run: nix develop -c cue export ./dns --out json > /dev/null
+
   build:
     runs-on: ubuntu-latest
     steps:

@@ -12,7 +12,7 @@ Fly.io infrastructure for [Flux](https://github.com/patflynn/flux) and [Balance]
 nix develop
 ```
 
-Provides: `flyctl`, `cue`, `skopeo`, `nixfmt`
+Provides: `flyctl`, `cue`, `skopeo`, `nixfmt`, `jq`, `curl`
 
 ## Apps
 
@@ -69,6 +69,59 @@ cue export ./apps/balance -t preview -t appName=balance-preview-42 -e preview --
 | preview | `balance-preview-{pr}` | suspend | 0 |
 | staging | `balance-staging` | suspend | 1 |
 | prod | `balance-prod` | off | 1 |
+
+## DNS
+
+DNS records for `gunk.dev` are managed via CUE definitions in `dns/` and synced to [Porkbun](https://porkbun.com/) using their REST API.
+
+### Record definitions
+
+Records are defined in `dns/gunk.dev.cue` using the `schema.#DNSRecord` type. Each app has individual CNAME records per environment:
+
+```
+{type: "CNAME", name: "flux",           content: "flux-prod.fly.dev"}
+{type: "CNAME", name: "staging.flux",    content: "flux-staging.fly.dev"}
+```
+
+This produces domains like `flux.gunk.dev` (prod) and `staging.flux.gunk.dev` (staging).
+
+### Validate and export
+
+```sh
+cue vet ./dns
+cue export ./dns --out json
+```
+
+### Manual sync
+
+```sh
+export PORKBUN_API_KEY="..."
+export PORKBUN_SECRET_KEY="..."
+./scripts/dns-sync.sh          # create/update only
+./scripts/dns-sync.sh --prune  # also delete records not in CUE
+```
+
+The `--prune` flag skips NS, SOA, bare-domain records, and preview records.
+
+### Preview DNS
+
+Preview DNS records are created and deleted automatically by the deploy workflows. They follow the pattern `preview-{pr}.{app}.gunk.dev` (e.g., `preview-42.flux.gunk.dev`).
+
+To manage manually:
+
+```sh
+./scripts/dns-preview.sh create flux 42   # creates preview-42.flux.gunk.dev
+./scripts/dns-preview.sh delete flux 42   # deletes it
+```
+
+### CI/CD
+
+- On push to `main` when `dns/` changes, the DNS sync workflow reconciles records via the Porkbun API.
+- Preview deploy workflows create DNS records; cleanup workflows delete them.
+
+### Secrets
+
+DNS workflows require `PORKBUN_API_KEY` and `PORKBUN_SECRET_KEY` in the GitHub **production** and **preview** environments.
 
 ## Deploy
 

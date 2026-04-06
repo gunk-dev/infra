@@ -47,6 +47,13 @@ jobs:
             --image-label latest \
             --docker-image "file://$(readlink -f result)"
 
+      - name: Create preview DNS record
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          PR_NUMBER: ${{ github.event.client_payload.pr_number }}
+        run: nix develop -c bash scripts/dns-preview.sh create flux "${PR_NUMBER}"
+
       - name: Comment preview URL on PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -55,7 +62,7 @@ jobs:
           APP_NAME="flux-preview-${PR_NUMBER}"
           gh pr comment "${PR_NUMBER}" \
             --repo patflynn/flux \
-            --body "Preview deployed: https://${APP_NAME}.fly.dev"
+            --body "Preview deployed: https://preview-${PR_NUMBER}.flux.gunk.dev"
 
   cleanup:
     if: github.event.action == 'flux-preview-cleanup'
@@ -64,7 +71,18 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          persist-credentials: false
+
       - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
+
+      - name: Delete preview DNS record
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+          PR_NUMBER: ${{ github.event.client_payload.pr_number }}
+        run: nix develop -c bash scripts/dns-preview.sh delete flux "${PR_NUMBER}"
 
       - name: Destroy preview app
         env:

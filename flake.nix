@@ -61,6 +61,8 @@
             pkgs.cue
             pkgs.skopeo
             pkgs.nixfmt
+            pkgs.jq
+            pkgs.curl
           ];
         };
       }

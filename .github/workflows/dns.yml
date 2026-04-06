@@ -1,0 +1,39 @@
+name: DNS Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dns/**'
+      - 'schema/dns.cue'
+      - 'scripts/dns-sync.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            accept-flake-config = true
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate DNS records
+        run: nix develop -c cue vet ./dns
+
+      - name: Sync DNS records
+        env:
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
+        run: nix develop -c bash scripts/dns-sync.sh
