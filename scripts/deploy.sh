@@ -31,6 +31,10 @@ case "$ENV" in
       echo "Error: PR number required for preview deployments" >&2
       exit 1
     fi
+    if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+      echo "Error: PR number must be a positive integer, got '${PR_NUMBER}'" >&2
+      exit 1
+    fi
     APP_NAME="${APP_PREFIX}-preview-${PR_NUMBER}"
     CUE_TAG="preview"
     ;;
@@ -81,6 +85,11 @@ else
   if [[ -z "$IMAGE" ]]; then
     echo "Error: image argument required for ${APP_TYPE} deployments" >&2
     echo "Usage: deploy.sh ${APP_TYPE} ${ENV} [pr-number] <image>" >&2
+    exit 1
+  fi
+
+  if [[ ! "$IMAGE" =~ ^registry\.fly\.io/${APP_PREFIX}-(preview|staging|prod)(:|$) ]]; then
+    echo "Error: image must be from registry.fly.io/${APP_PREFIX}-*" >&2
     exit 1
   fi
 

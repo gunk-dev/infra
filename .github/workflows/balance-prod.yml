@@ -12,9 +12,19 @@ permissions:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     steps:
+      - name: Validate inputs
+        env:
+          DEPLOY_IMAGE: ${{ inputs.image }}
+        run: |
+          if [[ ! "$DEPLOY_IMAGE" =~ ^registry\.fly\.io/balance-(preview|staging|prod)(:|$) ]]; then
+            echo "Error: image must be from registry.fly.io/balance-*" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           persist-credentials: false
