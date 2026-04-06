@@ -24,6 +24,15 @@ jobs:
       - name: Build OCI image
         run: nix build .#web-oci-image
 
+      - name: Load and push OCI image
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          docker load < result
+          nix develop -c fly auth docker
+          docker tag gunk-web:latest registry.fly.io/gunk-web-prod:latest
+          docker push registry.fly.io/gunk-web-prod:latest
+
       - name: Deploy to Fly.io
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -31,9 +40,7 @@ jobs:
           nix develop -c fly deploy \
             --config fly.toml \
             --app gunk-web-prod \
-            --local-only \
-            --image-label latest \
-            --docker-image "file://$(readlink -f result)"
+            --image registry.fly.io/gunk-web-prod:latest
 
       - name: Configure custom domains
         env:
