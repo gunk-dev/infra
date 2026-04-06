@@ -63,13 +63,13 @@
       "locked": {
         "lastModified": 1775480866,
         "narHash": "sha256-aFur/+M9VRardLSID+eizdn5gt3Rc6VcMkifTgtTn5U=",
-        "owner": "patflynn",
+        "owner": "gunk-dev",
         "repo": "flux",
         "rev": "0f5bdb50e314ba7188721ba97a9c50f591b2b784",
         "type": "github"
       },
       "original": {
-        "owner": "patflynn",
+        "owner": "gunk-dev",
         "repo": "flux",
         "type": "github"
       }
