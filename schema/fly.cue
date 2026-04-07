@@ -15,7 +15,7 @@ package schema
 	auto_stop_machines:  string | *"suspend"
 	auto_start_machines: bool | *true
 	min_machines_running: int | *0
-	checks: [string]: #HttpCheck
+	checks?: [...#HttpCheck]
 }
 
 #FlyApp: {
