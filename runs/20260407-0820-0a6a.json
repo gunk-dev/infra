@@ -1,0 +1,17 @@
+{
+  "id": "20260407-0820-0a6a",
+  "prompt": "Add a smoke test step to deploy workflows that validates the OCI image serves HTTP correctly before deploying to Fly.\n\n## Problem\nWe've had multiple deploy failures because the OCI image was broken (wrong file paths, bad config). These should be caught in CI before pushing to production.\n\n## What to add\n\n### 1. Add a smoke test job to CI (.github/workflows/ci.yml)\n\nAfter the existing `build` job that runs `nix build .#oci-image`, add a smoke test that:\n1. Loads the built image into Docker: `docker load \u003c result`\n2. Runs the container: `docker run -d --name smoke-test -p 8080:8080 flux:latest` (or gunk-web:latest)\n3. Waits a few seconds for Caddy to start\n4. Curls the health check endpoint: `curl -f http://localhost:8080/`\n5. Verifies it returns 200\n6. Cleans up: `docker stop smoke-test`\n\nDo this for ALL OCI images built in CI. Currently the CI builds `oci-image` (flux). After this change, it should also build and test `web-oci-image` (gunk-web).\n\n### 2. Add a smoke test step to deploy workflows\n\nIn web-prod.yml, prod.yml, and staging.yml, add a validation step AFTER `docker load` and BEFORE `docker push`:\n\n```yaml\n- name: Smoke test image\n  run: |\n    docker run -d --name smoke-test -p 8080:8080 IMAGE_NAME:latest\n    sleep 3\n    curl -f http://localhost:8080/ || (docker logs smoke-test \u0026\u0026 exit 1)\n    docker stop smoke-test\n    docker rm smoke-test\n```\n\nThis catches issues like wrong file paths, bad Caddyfile, or crashed processes BEFORE pushing to production.\n\n### Image names\n- Flux OCI image: `flux:latest`\n- Gunk-web OCI image: `gunk-web:latest`\n- Balance: not built in infra (external image), so skip smoke test for balance deploy workflows\n\n## Files\n- .github/workflows/ci.yml — add smoke test after build\n- .github/workflows/web-prod.yml — add smoke test before push\n- .github/workflows/prod.yml — add smoke test before push\n- .github/workflows/staging.yml — add smoke test before push\n\n## Acceptance criteria\n- CI builds AND smoke tests all OCI images\n- Deploy workflows validate image health before pushing to registry\n- A bad image (e.g. wrong file path) fails the smoke test, not the deploy\n- All existing CI checks still pass",
+  "issue": null,
+  "branch": "agent/20260407-0820-0a6a",
+  "worktree": "/tmp/klaus-sessions/infra/20260407-0820-0a6a",
+  "tmux_pane": "%39",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-1645-30f4/logs/20260407-0820-0a6a.jsonl",
+  "created_at": "2026-04-07T08:20:27-04:00",
+  "cost_usd": 0.32849725,
+  "duration_ms": 89292,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/15",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260407-0820-0a6a"
+}
