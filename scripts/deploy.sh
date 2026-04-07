@@ -6,10 +6,9 @@ if [[ -z "${FLY_API_TOKEN:-}" ]]; then
   exit 1
 fi
 
-APP_TYPE="${1:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number] [image]}"
-ENV="${2:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number] [image]}"
+APP_TYPE="${1:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number]}"
+ENV="${2:?Usage: deploy.sh <app> <preview|staging|prod> [pr-number]}"
 PR_NUMBER="${3:-}"
-IMAGE="${4:-}"
 
 case "$APP_TYPE" in
   flux|balance|web) ;;
@@ -96,23 +95,18 @@ case "$APP_TYPE" in
       --image-label "latest" \
       --docker-image "file://${IMAGE_PATH}"
     ;;
-  *)
-    if [[ -z "$IMAGE" ]]; then
-      echo "Error: image argument required for ${APP_TYPE} deployments" >&2
-      echo "Usage: deploy.sh ${APP_TYPE} ${ENV} [pr-number] <image>" >&2
-      exit 1
-    fi
+  balance)
+    echo "==> Building OCI image..."
+    nix build .#balance-oci-image
+    IMAGE_PATH="$(readlink -f result)"
 
-    if [[ ! "$IMAGE" =~ ^registry\.fly\.io/${APP_PREFIX}-(preview(-[1-9][0-9]*)?|staging|prod)(:|$) ]]; then
-      echo "Error: image must be from registry.fly.io/${APP_PREFIX}-*" >&2
-      exit 1
-    fi
-
-    echo "==> Deploying ${APP_NAME} with image ${IMAGE}..."
+    echo "==> Deploying ${APP_NAME}..."
     fly deploy \
       --config "${TMPDIR}/fly.toml" \
       --app "${APP_NAME}" \
-      --image "${IMAGE}"
+      --local-only \
+      --image-label "latest" \
+      --docker-image "file://${IMAGE_PATH}"
     ;;
 esac
 

@@ -16,14 +16,9 @@ jobs:
       - name: Validate inputs
         env:
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
-          DEPLOY_IMAGE: ${{ github.event.client_payload.image }}
         run: |
           if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
             echo "Error: pr_number must be a positive integer, got '${PR_NUMBER}'" >&2
-            exit 1
-          fi
-          if [[ ! "$DEPLOY_IMAGE" =~ ^registry\.fly\.io/balance-(preview(-[1-9][0-9]*)?|staging|prod)(:|$) ]]; then
-            echo "Error: image must be from registry.fly.io/balance-*" >&2
             exit 1
           fi
 
@@ -40,11 +35,13 @@ jobs:
           APP_NAME="balance-preview-${PR_NUMBER}"
           nix develop -c cue export ./apps/balance -t preview -t "appName=${APP_NAME}" -e preview --out toml > fly.toml
 
+      - name: Build OCI image
+        run: nix build .#balance-oci-image
+
       - name: Deploy to Fly.io
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
-          DEPLOY_IMAGE: ${{ github.event.client_payload.image }}
         run: |
           APP_NAME="balance-preview-${PR_NUMBER}"
 
@@ -52,10 +49,15 @@ jobs:
             nix develop -c fly apps create "${APP_NAME}" --org gunk-dev
           fi
 
+          docker load < result
+          nix develop -c fly auth docker
+          docker tag balance:latest "registry.fly.io/${APP_NAME}:latest"
+          docker push "registry.fly.io/${APP_NAME}:latest"
+
           nix develop -c fly deploy \
             --config fly.toml \
             --app "${APP_NAME}" \
-            --image "${DEPLOY_IMAGE}"
+            --image "registry.fly.io/${APP_NAME}:latest"
 
       - name: Configure preview domain
         env:

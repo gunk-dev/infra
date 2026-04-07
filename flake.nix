@@ -6,6 +6,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     flux.url = "github:gunk-dev/flux";
     gunk-web.url = "github:gunk-dev/gunk-web";
+    balance.url = "github:gunk-dev/balance";
   };
 
   outputs =
@@ -15,6 +16,7 @@
       flake-utils,
       flux,
       gunk-web,
+      balance,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -22,6 +24,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         fluxAssets = flux.packages.${system}.default;
         webAssets = gunk-web.packages.${system}.default;
+        balanceOciImage = balance.packages.${system}.oci-image;
 
         caddyfile = ./apps/flux/Caddyfile;
 
@@ -84,6 +87,7 @@
           default = ociImage;
           oci-image = ociImage;
           web-oci-image = webOciImage;
+          balance-oci-image = balanceOciImage;
         };
 
         devShells.default = pkgs.mkShell {

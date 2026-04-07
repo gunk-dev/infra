@@ -97,6 +97,8 @@ jobs:
             name: flux
           - image: web-oci-image
             name: gunk-web
+          - image: balance-oci-image
+            name: balance
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
