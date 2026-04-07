@@ -1,0 +1,17 @@
+{
+  "id": "20260407-1758-f9e6",
+  "prompt": "Fix preview deployment: fly deploy --docker-image flag no longer exists in current flyctl.\n\n## Bug\nThe preview workflow (.github/workflows/preview.yml) uses:\n```\nfly deploy --docker-image \"file://$(readlink -f result)\"\n```\nThis flag was removed in a recent flyctl version. The staging workflow (.github/workflows/staging.yml) works because it uses the docker load + push + --image approach instead.\n\n## Error\n```\nError: unknown flag: --docker-image\n```\nAll preview deploys are failing.\n\n## Fix\nUpdate the preview workflow's deploy step to match the staging workflow pattern:\n1. Load the OCI image: `docker load \u003c result`\n2. Tag it: `docker tag flux:latest registry.fly.io/${APP_NAME}:latest`\n3. Authenticate: `fly auth docker`\n4. Push: `docker push registry.fly.io/${APP_NAME}:latest`\n5. Deploy: `fly deploy --config fly.toml --app ${APP_NAME} --image registry.fly.io/${APP_NAME}:latest`\n\nReference the working staging.yml (lines 36-61) for the exact pattern. The key difference for previews is the app name is dynamic (`flux-preview-${PR_NUMBER}`).\n\nAlso remove the `--local-only` and `--image-label` flags from the deploy command since we're now using a registry image.\n\n## Files to modify\n- .github/workflows/preview.yml — update the 'Deploy to Fly.io' step\n\n## Testing\n- The workflow YAML should be valid\n- The deploy pattern should match staging.yml\n\n## Acceptance criteria\n- Preview deploys use docker load/push/--image pattern instead of --docker-image\n- Preview workflow matches staging workflow deploy approach\n- YAML is valid",
+  "issue": null,
+  "branch": "agent/20260407-1758-f9e6",
+  "worktree": "/tmp/klaus-sessions/infra/20260407-1758-f9e6",
+  "tmux_pane": "%13",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260407-1651-0aa4/logs/20260407-1758-f9e6.jsonl",
+  "created_at": "2026-04-07T17:58:23-04:00",
+  "cost_usd": 0.25170975,
+  "duration_ms": 44713,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/22",
+  "target_repo": "infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260407-1758-f9e6"
+}
