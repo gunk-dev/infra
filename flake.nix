@@ -59,8 +59,8 @@
             pkgs.caddy
           ];
           extraCommands = ''
-            mkdir -p srv/www
-            cp ${webAssets}/index.html srv/www/index.html
+            mkdir -p srv
+            cp ${webAssets}/index.html srv/index.html
             mkdir -p etc/caddy
             cp ${webAssets}/Caddyfile etc/caddy/Caddyfile
           '';
