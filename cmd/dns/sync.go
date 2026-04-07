@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -72,7 +73,7 @@ func runSync(prune bool) error {
 	for _, r := range existing {
 		// Porkbun returns FQDN in name, strip the domain suffix
 		name := stripDomain(r.Name, input.Domain)
-		key := recordKey{Type: r.Type, Name: name, Content: r.Content}
+		key := recordKey{Type: r.Type, Name: name, Content: normalizeContent(r.Type, r.Content)}
 		existingByKey[key] = r
 	}
 
@@ -81,7 +82,7 @@ func runSync(prune bool) error {
 
 	// Create or update desired records
 	for _, want := range input.Records {
-		key := recordKey{Type: want.Type, Name: want.Name, Content: want.Content}
+		key := recordKey{Type: want.Type, Name: want.Name, Content: normalizeContent(want.Type, want.Content)}
 		if got, ok := existingByKey[key]; ok {
 			matched[got.ID] = true
 			// Check if TTL or priority needs updating
@@ -161,4 +162,16 @@ func displayName(name string) string {
 		return "@"
 	}
 	return name
+}
+
+// normalizeContent canonicalizes the content string for comparison.
+// For AAAA records, it parses and re-serializes the IPv6 address so that
+// different textual representations of the same address match.
+func normalizeContent(recordType, content string) string {
+	if recordType == "AAAA" {
+		if ip := net.ParseIP(content); ip != nil {
+			return ip.String()
+		}
+	}
+	return content
 }
