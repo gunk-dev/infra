@@ -24,6 +24,14 @@ jobs:
       - name: Build OCI image
         run: nix build .#oci-image
 
+      - name: Ensure app exists
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if ! nix develop -c fly apps list --org gunk-dev | grep -q flux-prod; then
+            nix develop -c fly apps create flux-prod --org gunk-dev
+          fi
+
       - name: Load and push OCI image
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
