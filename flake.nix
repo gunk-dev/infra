@@ -5,8 +5,14 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     flux.url = "github:gunk-dev/flux";
+    flux.inputs.nixpkgs.follows = "nixpkgs";
+    flux.inputs.flake-utils.follows = "flake-utils";
     gunk-web.url = "github:gunk-dev/gunk-web";
+    gunk-web.inputs.nixpkgs.follows = "nixpkgs";
+    gunk-web.inputs.flake-utils.follows = "flake-utils";
     balance.url = "github:gunk-dev/balance";
+    balance.inputs.nixpkgs.follows = "nixpkgs";
+    balance.inputs.flake-utils.follows = "flake-utils";
   };
 
   outputs =
