@@ -26,8 +26,7 @@ records: [...schema.#DNSRecord] & [
 	{type: "CNAME", name: "staging.web", content: "gunk-web-staging.fly.dev"},
 
 	// Web (gunk.dev) — apex requires A/AAAA since CNAME is not allowed on zone apex.
-	// Verify these IPs after app creation: fly ips list -a gunk-web-prod
-	{type: "A", name: "", content: "66.241.124.255"},
-	{type: "AAAA", name: "", content: "2a09:8280:1::2:db55"},
+	{type: "A", name: "", content: "66.241.125.235"},
+	{type: "AAAA", name: "", content: "2a09:8280:1::f8:c96e:0"},
 	{type: "CNAME", name: "www", content: "gunk-web-prod.fly.dev"},
 ]
