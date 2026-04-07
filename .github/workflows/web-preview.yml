@@ -1,12 +1,12 @@
-name: Deploy Balance Preview
+name: Deploy Web Preview
 
 on:
   repository_dispatch:
-    types: [balance-preview, balance-preview-cleanup]
+    types: [web-preview, web-preview-cleanup]
 
 jobs:
   deploy:
-    if: github.event.action == 'balance-preview'
+    if: github.event.action == 'web-preview'
     runs-on: ubuntu-latest
     environment: preview
     permissions:
@@ -32,17 +32,17 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
         run: |
-          APP_NAME="balance-preview-${PR_NUMBER}"
-          nix develop -c cue export ./apps/balance -t preview -t "appName=${APP_NAME}" -e preview --out toml > fly.toml
+          APP_NAME="gunk-web-preview-${PR_NUMBER}"
+          nix develop -c cue export ./apps/web -t preview -t "appName=${APP_NAME}" -e preview --out toml > fly.toml
 
       - name: Build OCI image
         env:
           HEAD_SHA: ${{ github.event.client_payload.head_sha }}
         run: |
           if [ -n "$HEAD_SHA" ]; then
-            nix build .#balance-oci-image --override-input balance "github:gunk-dev/balance/$HEAD_SHA"
+            nix build .#web-oci-image --override-input gunk-web "github:gunk-dev/gunk-web/$HEAD_SHA"
           else
-            nix build .#balance-oci-image
+            nix build .#web-oci-image
           fi
 
       - name: Deploy to Fly.io
@@ -50,7 +50,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
         run: |
-          APP_NAME="balance-preview-${PR_NUMBER}"
+          APP_NAME="gunk-web-preview-${PR_NUMBER}"
 
           if ! nix develop -c fly apps list --org gunk-dev | grep -q "^${APP_NAME}"; then
             nix develop -c fly apps create "${APP_NAME}" --org gunk-dev
@@ -58,7 +58,7 @@ jobs:
 
           docker load < result
           nix develop -c fly auth docker
-          docker tag balance:latest "registry.fly.io/${APP_NAME}:latest"
+          docker tag gunk-web:latest "registry.fly.io/${APP_NAME}:latest"
           docker push "registry.fly.io/${APP_NAME}:latest"
 
           nix develop -c fly deploy \
@@ -71,13 +71,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
         run: |
-          APP_NAME="balance-preview-${PR_NUMBER}"
+          APP_NAME="gunk-web-preview-${PR_NUMBER}"
           gh pr comment "${PR_NUMBER}" \
-            --repo gunk-dev/balance \
+            --repo gunk-dev/gunk-web \
             --body "Preview deployed: https://${APP_NAME}.fly.dev"
 
   cleanup:
-    if: github.event.action == 'balance-preview-cleanup'
+    if: github.event.action == 'web-preview-cleanup'
     runs-on: ubuntu-latest
     environment: preview
     permissions:
@@ -96,4 +96,4 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           PR_NUMBER: ${{ github.event.client_payload.pr_number }}
-        run: nix develop -c fly apps destroy "balance-preview-${PR_NUMBER}" -y
+        run: nix develop -c fly apps destroy "gunk-web-preview-${PR_NUMBER}" -y
