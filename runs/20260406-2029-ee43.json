@@ -1,0 +1,17 @@
+{
+  "id": "20260406-2029-ee43",
+  "prompt": "The web-prod deploy fails because flyctl can't parse the generated fly.toml. The error is:\n\n  json: cannot unmarshal object into Go struct field HTTPService.http_service.checks of type []*appconfig.ServiceHTTPCheck\n\nThe CUE schema defines checks as a named map (`checks: alive: {...}`) which exports as:\n```toml\n[http_service.checks.alive]\nmethod = \"GET\"\npath = \"/\"\n```\n\nBut flyctl expects checks as an array:\n```toml\n[[http_service.checks]]\nmethod = \"GET\"\npath = \"/\"\n```\n\n## Fix\n\nUpdate the CUE schema in schema/fly.cue to define checks as a list instead of a map. Currently (around line 15):\n```cue\nchecks: [string]: #HttpCheck\n```\n\nChange to:\n```cue\nchecks?: [...#HttpCheck]\n```\n\nThen update all app configs (apps/web/base.cue, apps/flux/base.cue, apps/balance/base.cue) to use list syntax instead of named map:\n```cue\nchecks: [{\n    method: \"GET\"\n    path: \"/\"\n    interval: \"30s\"\n    timeout: \"5s\"\n    grace_period: \"10s\"\n}]\n```\n\n## Verify\n\nAfter the change, run:\n```\ncue export ./apps/web -t prod -e prod --out toml\n```\n\nAnd confirm the output has `[[http_service.checks]]` (array syntax) not `[http_service.checks.alive]` (map syntax).\n\n## Files\n- schema/fly.cue — change checks definition\n- apps/web/base.cue — update checks syntax\n- apps/flux/base.cue — update checks syntax  \n- apps/balance/base.cue — update checks syntax\n\n## Acceptance criteria\n- `cue export` produces valid fly.toml with array-style checks\n- `cue vet` passes for all apps\n- CI passes",
+  "issue": null,
+  "branch": "agent/20260406-2029-ee43",
+  "worktree": "/tmp/klaus-sessions/infra/20260406-2029-ee43",
+  "tmux_pane": "%37",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-1645-30f4/logs/20260406-2029-ee43.jsonl",
+  "created_at": "2026-04-06T20:29:32-04:00",
+  "cost_usd": 0.25893225000000003,
+  "duration_ms": 63808,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/13",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260406-2029-ee43"
+}
