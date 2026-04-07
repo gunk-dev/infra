@@ -1,0 +1,17 @@
+{
+  "id": "20260406-2003-f5a7",
+  "prompt": "The web-prod deploy fails because the Fly app gunk-web-prod doesn't exist yet. The registry rejects pushes with 'app repository not found'.\n\n## Fix\n\nAdd an 'Ensure app exists' step BEFORE the 'Load and push OCI image' step in .github/workflows/web-prod.yml:\n\n```yaml\n      - name: Ensure app exists\n        env:\n          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}\n        run: |\n          if ! nix develop -c fly apps list --org gunk-dev | grep -q gunk-web-prod; then\n            nix develop -c fly apps create gunk-web-prod --org gunk-dev\n          fi\n```\n\nThis matches the pattern in scripts/deploy.sh (lines 56-58).\n\nAlso add the same pattern to prod.yml (flux) and staging.yml if they don't already have it — any workflow that pushes to the Fly registry needs the app to exist first.\n\n## File\n- .github/workflows/web-prod.yml — add ensure app step before image push\n\n## Acceptance criteria\n- App creation step runs before registry push\n- Idempotent (doesn't fail if app already exists)\n- CI passes",
+  "issue": null,
+  "branch": "agent/20260406-2003-f5a7",
+  "worktree": "/tmp/klaus-sessions/infra/20260406-2003-f5a7",
+  "tmux_pane": "%36",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-1645-30f4/logs/20260406-2003-f5a7.jsonl",
+  "created_at": "2026-04-06T20:03:53-04:00",
+  "cost_usd": 0.40519675,
+  "duration_ms": 85322,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/12",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260406-2003-f5a7"
+}
