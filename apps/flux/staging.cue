@@ -9,6 +9,6 @@ staging: _base & {
 	http_service: {
 		auto_stop_machines:   "suspend"
 		auto_start_machines:  true
-		min_machines_running: 1
+		min_machines_running: 0
 	}
 }

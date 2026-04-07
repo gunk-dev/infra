@@ -7,8 +7,8 @@ prod: _base & {
 	custom_domains: ["gunk.dev", "www.gunk.dev"]
 
 	http_service: {
-		auto_stop_machines:   "off"
+		auto_stop_machines:   "suspend"
 		auto_start_machines:  true
-		min_machines_running: 1
+		min_machines_running: 0
 	}
 }
