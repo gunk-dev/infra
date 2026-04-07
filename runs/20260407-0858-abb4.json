@@ -1,0 +1,19 @@
+{
+  "id": "20260407-0858-abb4",
+  "prompt": "PR #20 in gunk-dev/infra has review comments from a trusted reviewer that need to be addressed. Check the review comments with: gh api repos/gunk-dev/infra/pulls/20/comments",
+  "issue": null,
+  "pr": "20",
+  "branch": "agent/20260407-0854-676e",
+  "worktree": "/tmp/klaus-sessions/infra/20260407-0858-abb4",
+  "tmux_pane": "%46",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-1645-30f4/logs/20260407-0858-abb4.jsonl",
+  "created_at": "2026-04-07T08:58:31-04:00",
+  "cost_usd": 0.42918024999999993,
+  "duration_ms": 98516,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/20",
+  "type": "pr-fix",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260407-0858-abb4"
+}
