@@ -90,6 +90,13 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image: oci-image
+            name: flux
+          - image: web-oci-image
+            name: gunk-web
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
@@ -102,8 +109,17 @@ jobs:
             accept-flake-config = true
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build OCI image
-        run: nix build .#oci-image
+      - name: Build OCI image (${{ matrix.name }})
+        run: nix build .#${{ matrix.image }}
+
+      - name: Smoke test image (${{ matrix.name }})
+        run: |
+          docker load < result
+          docker run -d --name smoke-test -p 8080:8080 ${{ matrix.name }}:latest
+          sleep 3
+          curl -f http://localhost:8080/ || (docker logs smoke-test && exit 1)
+          docker stop smoke-test
+          docker rm smoke-test
 
   zizmor:
     runs-on: ubuntu-latest
