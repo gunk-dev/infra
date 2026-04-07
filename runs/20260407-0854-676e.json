@@ -1,0 +1,17 @@
+{
+  "id": "20260407-0854-676e",
+  "prompt": "Update all app CUE configs to use auto_stop: suspend and min_machines_running: 0 across all environments. This reflects the desired state: 1 machine per environment, all suspendable when idle.\n\n## Changes needed\n\nIn all prod.cue files (apps/flux/prod.cue, apps/web/prod.cue, apps/balance/prod.cue), change:\n- `auto_stop_machines: \"off\"` → `auto_stop_machines: \"suspend\"`\n- `min_machines_running: 1` → `min_machines_running: 0`\n\nIn all staging.cue files (apps/flux/staging.cue, apps/balance/staging.cue), change:\n- `min_machines_running: 1` → `min_machines_running: 0`\n(staging already has auto_stop: suspend)\n\nAlso check apps/web/ for a staging.cue and update if it exists.\n\nAlso check all preview.cue files — they should already have suspend/0 but verify.\n\n## Files\n- apps/flux/prod.cue\n- apps/flux/staging.cue\n- apps/balance/prod.cue\n- apps/balance/staging.cue\n- apps/web/prod.cue\n- apps/web/staging.cue (if exists)\n- Any preview.cue files\n\n## Acceptance criteria\n- All environments use auto_stop_machines: \"suspend\"\n- All environments use min_machines_running: 0\n- cue vet passes for all apps\n- CI passes",
+  "issue": null,
+  "branch": "agent/20260407-0854-676e",
+  "worktree": "/tmp/klaus-sessions/infra/20260407-0854-676e",
+  "tmux_pane": "%45",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260406-1645-30f4/logs/20260407-0854-676e.jsonl",
+  "created_at": "2026-04-07T08:54:31-04:00",
+  "cost_usd": 0.30589475,
+  "duration_ms": 64082,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/20",
+  "target_repo": "gunk-dev/infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260407-0854-676e"
+}
