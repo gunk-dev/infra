@@ -1,43 +1,25 @@
 name: Deploy Web Staging
 
 on:
-  repository_dispatch:
-    types: [web-staging]
+  push:
+    branches: [main]
+    paths:
+      - 'flake.lock'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      # zizmor: ignore[artipacked] - credentials must persist for git push of flake.lock updates
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
-          token: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+          persist-credentials: false
 
       - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
-
-      - name: Update flake input
-        run: nix flake update gunk-web
-
-      - name: Commit flake.lock
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
-          SHORT_SHA=$(nix flake metadata .#gunk-web --json 2>/dev/null | jq -r '.locks.nodes."gunk-web".locked.rev[:8]' || echo 'latest')
-          git add flake.lock
-          if git diff --cached --quiet; then
-            echo 'flake.lock unchanged, skipping commit'
-          else
-            git commit -m "deploy: update gunk-web to ${SHORT_SHA}"
-            git push
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate fly.toml
         run: nix develop -c cue export ./apps/web -t staging -e staging --out toml > fly.toml
@@ -53,23 +35,21 @@ jobs:
             nix develop -c fly apps create gunk-web-staging --org gunk-dev
           fi
 
-      - name: Load OCI image
-        run: docker load < result
+      - name: Load and push OCI image
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          docker load < result
+          nix develop -c fly auth docker
+          docker tag gunk-web:latest registry.fly.io/gunk-web-staging:latest
+          docker push registry.fly.io/gunk-web-staging:latest
 
-      - name: Smoke test image
+      - name: Smoke test
         run: |
           docker run -d --name smoke-test -p 8080:8080 gunk-web:latest
           sleep 3
           curl -f http://localhost:8080/ || (docker logs smoke-test && exit 1)
           docker stop smoke-test && docker rm smoke-test
-
-      - name: Push OCI image
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          nix develop -c fly auth docker
-          docker tag gunk-web:latest registry.fly.io/gunk-web-staging:latest
-          docker push registry.fly.io/gunk-web-staging:latest
 
       - name: Deploy to Fly.io
         env:
@@ -86,6 +66,5 @@ jobs:
         run: |
           DOMAINS=$(nix develop -c cue export ./apps/web -t staging -e staging --out json | jq -r '.custom_domains[]? // empty')
           for domain in $DOMAINS; do
-            echo "Configuring certificate for $domain"
             nix develop -c fly certs create "$domain" -a gunk-web-staging || true
           done
