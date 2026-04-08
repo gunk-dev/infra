@@ -1,4 +1,4 @@
-name: Deploy Production
+name: Deploy Flux Production
 
 on:
   workflow_dispatch:
