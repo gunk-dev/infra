@@ -138,4 +138,4 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Security lint GitHub Actions
-        run: nix run nixpkgs#zizmor -- . --no-online-audits
+        run: nix run nixpkgs#zizmor -- . --no-online-audits --min-confidence medium

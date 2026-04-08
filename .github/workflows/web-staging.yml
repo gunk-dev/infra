@@ -1,8 +1,8 @@
-name: Deploy Balance Staging
+name: Deploy Web Staging
 
 on:
   repository_dispatch:
-    types: [balance-staging]
+    types: [web-staging]
   workflow_dispatch:
 
 permissions:
@@ -21,36 +21,36 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
 
       - name: Update flake input
-        run: nix flake update balance
+        run: nix flake update gunk-web
 
       - name: Commit flake.lock
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
-          SHORT_SHA=$(nix flake metadata .#balance --json 2>/dev/null | jq -r '.locks.nodes.balance.locked.rev[:8]' || echo 'latest')
+          SHORT_SHA=$(nix flake metadata .#gunk-web --json 2>/dev/null | jq -r '.locks.nodes."gunk-web".locked.rev[:8]' || echo 'latest')
           git add flake.lock
           if git diff --cached --quiet; then
             echo 'flake.lock unchanged, skipping commit'
           else
-            git commit -m "deploy: update balance to ${SHORT_SHA}"
+            git commit -m "deploy: update gunk-web to ${SHORT_SHA}"
             git push
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate fly.toml
-        run: nix develop -c cue export ./apps/balance -t staging -e staging --out toml > fly.toml
+        run: nix develop -c cue export ./apps/web -t staging -e staging --out toml > fly.toml
 
       - name: Build OCI image
-        run: nix build .#balance-oci-image
+        run: nix build .#web-oci-image
 
       - name: Ensure app exists
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          if ! nix develop -c fly apps list --org gunk-dev | grep -q balance-staging; then
-            nix develop -c fly apps create balance-staging --org gunk-dev
+          if ! nix develop -c fly apps list --org gunk-dev | grep -q gunk-web-staging; then
+            nix develop -c fly apps create gunk-web-staging --org gunk-dev
           fi
 
       - name: Load OCI image
@@ -58,9 +58,9 @@ jobs:
 
       - name: Smoke test image
         run: |
-          docker run -d --name smoke-test -p 8080:8080 balance:latest
+          docker run -d --name smoke-test -p 8080:8080 gunk-web:latest
           sleep 3
-          curl -f http://localhost:8080/api/health || (docker logs smoke-test && exit 1)
+          curl -f http://localhost:8080/ || (docker logs smoke-test && exit 1)
           docker stop smoke-test && docker rm smoke-test
 
       - name: Push OCI image
@@ -68,8 +68,8 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           nix develop -c fly auth docker
-          docker tag balance:latest registry.fly.io/balance-staging:latest
-          docker push registry.fly.io/balance-staging:latest
+          docker tag gunk-web:latest registry.fly.io/gunk-web-staging:latest
+          docker push registry.fly.io/gunk-web-staging:latest
 
       - name: Deploy to Fly.io
         env:
@@ -77,15 +77,15 @@ jobs:
         run: |
           nix develop -c fly deploy \
             --config fly.toml \
-            --app balance-staging \
-            --image registry.fly.io/balance-staging:latest
+            --app gunk-web-staging \
+            --image registry.fly.io/gunk-web-staging:latest
 
       - name: Configure custom domains
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          DOMAINS=$(nix develop -c cue export ./apps/balance -t staging -e staging --out json | jq -r '.custom_domains[]? // empty')
+          DOMAINS=$(nix develop -c cue export ./apps/web -t staging -e staging --out json | jq -r '.custom_domains[]? // empty')
           for domain in $DOMAINS; do
             echo "Configuring certificate for $domain"
-            nix develop -c fly certs create "$domain" -a balance-staging || true
+            nix develop -c fly certs create "$domain" -a gunk-web-staging || true
           done
