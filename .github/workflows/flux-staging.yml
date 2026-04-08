@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
+      # zizmor: ignore[artipacked] - credentials must persist for git push of flake.lock updates
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         with:
           token: ${{ secrets.INFRA_DISPATCH_TOKEN }}
