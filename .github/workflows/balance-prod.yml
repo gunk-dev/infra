@@ -32,11 +32,21 @@ jobs:
             nix develop -c fly apps create balance-prod --org gunk-dev
           fi
 
-      - name: Load and push OCI image
+      - name: Load OCI image
+        run: docker load < result
+
+      - name: Smoke test image
+        run: |
+          docker run -d --name smoke-test -p 8080:8080 balance:latest
+          sleep 3
+          curl -f http://localhost:8080/api/health || (docker logs smoke-test && exit 1)
+          docker stop smoke-test
+          docker rm smoke-test
+
+      - name: Push OCI image
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          docker load < result
           nix develop -c fly auth docker
           docker tag balance:latest registry.fly.io/balance-prod:latest
           docker push registry.fly.io/balance-prod:latest
