@@ -1,6 +1,6 @@
 package web
 
-import "gunk.dev/infra/schema"
+import "gunk.dev/armstrong/schema"
 
 _base: schema.#FlyApp & {
 	primary_region: string | *"iad"

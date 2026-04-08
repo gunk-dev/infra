@@ -12,59 +12,12 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-        with:
-          persist-credentials: false
-
-      - uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
-
-      - name: Generate fly.toml
-        run: nix develop -c cue export ./apps/flux -t staging -e staging --out toml > fly.toml
-
-      - name: Build OCI image
-        run: nix build .#oci-image
-
-      - name: Ensure app exists
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          if ! nix develop -c fly apps list --org gunk-dev | grep -q flux-staging; then
-            nix develop -c fly apps create flux-staging --org gunk-dev
-          fi
-
-      - name: Load and push OCI image
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          docker load < result
-          nix develop -c fly auth docker
-          docker tag flux:latest registry.fly.io/flux-staging:latest
-          docker push registry.fly.io/flux-staging:latest
-
-      - name: Smoke test
-        run: |
-          docker run -d --name smoke-test -p 8080:8080 flux:latest
-          sleep 3
-          curl -f http://localhost:8080/ || (docker logs smoke-test && exit 1)
-          docker stop smoke-test && docker rm smoke-test
-
-      - name: Deploy to Fly.io
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          nix develop -c fly deploy \
-            --config fly.toml \
-            --app flux-staging \
-            --image registry.fly.io/flux-staging:latest
-
-      - name: Configure custom domains
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          DOMAINS=$(nix develop -c cue export ./apps/flux -t staging -e staging --out json | jq -r '.custom_domains[]? // empty')
-          for domain in $DOMAINS; do
-            nix develop -c fly certs create "$domain" -a flux-staging || true
-          done
+    uses: gunk-dev/armstrong/.github/workflows/deploy-fly.yml@main
+    with:
+      app-name: flux-staging
+      cue-path: ./apps/flux
+      environment: staging
+      nix-target: oci-image
+      image-name: flux
+    secrets:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
