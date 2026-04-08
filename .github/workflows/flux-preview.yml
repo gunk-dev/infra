@@ -4,10 +4,12 @@ on:
   repository_dispatch:
     types: [flux-preview, flux-preview-cleanup]
 
+permissions: {}
+
 jobs:
   preview:
     if: github.event.action == 'flux-preview'
-    uses: gunk-dev/armstrong/.github/workflows/preview-fly.yml@main
+    uses: gunk-dev/armstrong/.github/workflows/preview-fly.yml@b27877e3fcbddb494a9f675aab36785c26138736 # main
     with:
       app-prefix: flux-preview
       cue-path: ./apps/flux
@@ -25,7 +27,7 @@ jobs:
 
   cleanup:
     if: github.event.action == 'flux-preview-cleanup'
-    uses: gunk-dev/armstrong/.github/workflows/preview-fly.yml@main
+    uses: gunk-dev/armstrong/.github/workflows/preview-fly.yml@b27877e3fcbddb494a9f675aab36785c26138736 # main
     with:
       app-prefix: flux-preview
       cue-path: ./apps/flux

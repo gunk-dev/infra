@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   deploy:
-    uses: gunk-dev/armstrong/.github/workflows/deploy-fly.yml@main
+    uses: gunk-dev/armstrong/.github/workflows/deploy-fly.yml@b27877e3fcbddb494a9f675aab36785c26138736 # main
     with:
       app-name: gunk-web-staging
       cue-path: ./apps/web
