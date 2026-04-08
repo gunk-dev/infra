@@ -1,0 +1,17 @@
+{
+  "id": "20260408-0844-dabf",
+  "prompt": "Standardize prod workflows — final cleanup for issue #24.\n\n## Changes needed\n\n### 1. Rename prod.yml → flux-prod.yml\nRename .github/workflows/prod.yml to .github/workflows/flux-prod.yml\nUpdate the workflow name from 'Deploy to Production' or similar to 'Deploy Flux Production'\n\n### 2. Ensure consistent structure across all three prod workflows\nAll three prod workflows (flux-prod.yml, balance-prod.yml, web-prod.yml) should have identical structure:\n- Trigger: workflow_dispatch only\n- Guard: github.ref == 'refs/heads/main'\n- Environment: production\n- persist-credentials: false on checkout\n- Steps: checkout → nix → generate fly.toml → build OCI → ensure app exists → load image → smoke test → push image → deploy → configure custom domains\n\n### 3. Add smoke tests to all prod workflows\nCheck which prod workflows are missing smoke tests and add them. The pattern:\n```yaml\n- name: Smoke test\n  run: |\n    docker run -d --name smoke-test -p 8080:8080 \u003cimage\u003e:latest\n    sleep 3\n    curl -f http://localhost:8080/\u003chealth-path\u003e || (docker logs smoke-test \u0026\u0026 exit 1)\n    docker stop smoke-test \u0026\u0026 docker rm smoke-test\n```\n\nHealth paths:\n- flux: /\n- balance: /api/health\n- web: /\n\n### 4. Ensure consistent naming in workflow 'name' field\n- flux-prod.yml: name: 'Deploy Flux Production'\n- balance-prod.yml: name: 'Deploy Balance Production' \n- web-prod.yml: name: 'Deploy Web Production'\n\n## Files to modify\n- .github/workflows/prod.yml → rename to .github/workflows/flux-prod.yml, update name, add smoke test if missing\n- .github/workflows/balance-prod.yml → update name if needed, add smoke test if missing\n- .github/workflows/web-prod.yml → update name if needed, add smoke test if missing\n\n## Acceptance criteria\n- No more prod.yml (renamed to flux-prod.yml)\n- All three prod workflows have identical structure\n- All have smoke tests\n- All have consistent naming\n- All pass zizmor (persist-credentials: false)\n- YAML is valid",
+  "issue": "24",
+  "branch": "agent/20260408-0844-dabf",
+  "worktree": "/tmp/klaus-sessions/infra/20260408-0844-dabf",
+  "tmux_pane": "%24",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260407-1651-0aa4/logs/20260408-0844-dabf.jsonl",
+  "created_at": "2026-04-08T08:44:41-04:00",
+  "cost_usd": 0.28844949999999997,
+  "duration_ms": 62453,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/29",
+  "target_repo": "infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260408-0844-dabf"
+}
