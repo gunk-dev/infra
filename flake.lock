@@ -6,11 +6,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1775518859,
-        "narHash": "sha256-NAvd+/zPBBq0+iiZWXh45ccYN4ej9mNtV393VzecPoc=",
+        "lastModified": 1775652803,
+        "narHash": "sha256-bEoS4G/7QzDcPtKURvzOhFmwC0dyHwfvMN9hup5JIc0=",
         "owner": "gunk-dev",
         "repo": "balance",
-        "rev": "92c283c1a308124e5198b5536ea06363be010e03",
+        "rev": "a97c0aa7910b74e29d7e7c558c7cc01072dbb084",
         "type": "github"
       },
       "original": {
