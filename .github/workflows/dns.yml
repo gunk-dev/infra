@@ -6,7 +6,7 @@ on:
     paths:
       - "dns/**"
       - "cmd/dns/**"
-      - "schema/dns.cue"
+      - "cue.mod/pkg/gunk.dev/armstrong/schema/dns.cue"
   workflow_dispatch:
 
 permissions:
