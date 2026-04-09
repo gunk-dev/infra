@@ -1,6 +1,6 @@
 package dns
 
-import "gunk.dev/infra/schema"
+import "gunk.dev/armstrong/schema"
 
 domain: "gunk.dev"
 
