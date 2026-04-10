@@ -63,7 +63,7 @@
           ];
           extraCommands = ''
             mkdir -p srv
-            cp ${webAssets}/index.html srv/index.html
+            cp -r ${webAssets}/www/* srv/
             mkdir -p etc/caddy
             cp ${webAssets}/Caddyfile etc/caddy/Caddyfile
           '';
