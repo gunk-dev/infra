@@ -135,11 +135,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1775820454,
-        "narHash": "sha256-77dazIVe0F02eiFUudErfgSJMNvOHZavRxvN+0PAWHU=",
+        "lastModified": 1775821134,
+        "narHash": "sha256-s+ORmS0iAHzV9puw7mvMIa9lOU3hksuBkUvEG0jOtoU=",
         "owner": "gunk-dev",
         "repo": "gunk-web",
-        "rev": "99ca0014d02e240b25a7304c3fb21c1cedf89e92",
+        "rev": "2b0d02939b33ce0314c318bf42da8fa9d2d01c45",
         "type": "github"
       },
       "original": {
