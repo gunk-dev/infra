@@ -4,3 +4,6 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days-before-reopen: 5
+      semver-major-days-before-reopen: 30
