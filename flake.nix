@@ -94,7 +94,6 @@
           packages = [
             pkgs.flyctl
             pkgs.cue
-            pkgs.go
             pkgs.jq
             pkgs.skopeo
             pkgs.nixfmt
