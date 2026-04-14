@@ -125,7 +125,7 @@ Triggered from the [flux repo](https://github.com/patflynn/flux) via `repository
 - **Preview**: `flux-preview` event on PR open/sync — deploys a per-PR preview app, comments the URL on the PR
 - **Preview cleanup**: `flux-preview-cleanup` event on PR close — destroys the preview app
 - **Staging**: `flux-staging` event on merge to main — triggers a flake.lock update PR with auto-merge, which deploys to `flux-staging` on merge
-- **Production**: Manual `workflow_dispatch` in this repo
+- **Prod**: Manual `workflow_dispatch` in this repo
 
 ### Balance deployments
 
@@ -134,7 +134,7 @@ Triggered from the [balance repo](https://github.com/patflynn/balance) via `repo
 - **Preview**: `balance-preview` event on PR open/sync — deploys a per-PR preview app, comments the URL on the PR
 - **Preview cleanup**: `balance-preview-cleanup` event on PR close — destroys the preview app
 - **Staging**: `balance-staging` event on merge to main — triggers a flake.lock update PR with auto-merge, which deploys to `balance-staging` on merge
-- **Production**: Manual `workflow_dispatch` in this repo
+- **Prod**: Manual `workflow_dispatch` in this repo
 
 ### Web deployments
 
@@ -143,11 +143,11 @@ Triggered from the [gunk-web repo](https://github.com/gunk-dev/gunk-web) via `re
 - **Preview**: `web-preview` event on PR open/sync — deploys a per-PR preview app, comments the URL on the PR
 - **Preview cleanup**: `web-preview-cleanup` event on PR close — destroys the preview app
 - **Staging**: `web-staging` event on merge to main — triggers a flake.lock update PR with auto-merge, which deploys to `gunk-web-staging` on merge
-- **Production**: Manual `workflow_dispatch` in this repo
+- **Prod**: Manual `workflow_dispatch` in this repo
 
 ### Secrets
 
-Deploy workflows read `FLY_API_TOKEN` from GitHub **environments** (preview, staging, prod), not repo-level secrets.
+Deploy workflows read `FLY_API_TOKEN` from GitHub environments (**preview**, **staging**, **prod**), not repo-level secrets.
 
 Preview and update workflows use a GitHub App for cross-repo PR comments and auto-merge PRs. `APP_ID` and `APP_PRIVATE_KEY` are stored in the **preview** and **automation** environments respectively.
 
