@@ -1,0 +1,17 @@
+{
+  "id": "20260414-0849-03bf",
+  "prompt": "Complete the DNS tool extraction from infra to armstrong (part of issue #33).\n\n## Context\nArmstrong PR #3 just merged, which added:\n- `cmd/dns/` — the DNS CLI tool (previously in infra)\n- `.github/workflows/dns-sync.yml` — a reusable workflow that callers can invoke to sync DNS records\n\nInfra still has its own copy of `cmd/dns/` and a self-contained `dns.yml` workflow. These need to be replaced.\n\n## What to do\n\n### 1. Remove `cmd/dns/` directory\nDelete `cmd/dns/main.go`, `cmd/dns/porkbun.go`, `cmd/dns/preview.go`, `cmd/dns/sync.go`, `cmd/dns/sync_test.go`. The DNS tool now lives in armstrong.\n\n### 2. Remove Go dependencies\n`go.mod` and `go.sum` only exist for `cmd/dns/`. With it gone, delete both files.\n\n### 3. Replace `.github/workflows/dns.yml`\nThe current workflow builds the Go tool locally and runs it. Replace it to call armstrong's reusable workflow:\n\n```yaml\nname: DNS Sync\n\non:\n  push:\n    branches: [main]\n    paths:\n      - 'dns/**'\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  sync:\n    uses: gunk-dev/armstrong/.github/workflows/dns-sync.yml@main\n    secrets:\n      PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}\n      PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}\n```\n\nNote: the armstrong workflow checks out the calling repo (via `actions/checkout`) to get the DNS CUE definitions, then checks out armstrong for the Go tool. So infra just needs to pass secrets.\n\n### 4. Update CI workflow\nCheck if `.github/workflows/ci.yml` has a `build-dns` job that builds `cmd/dns`. If so, remove that job since the code no longer exists here.\n\n### 5. Clean up .gitignore\nCheck if `.gitignore` has entries for Go binaries or `cmd/dns` artifacts. Clean up if so.\n\n### 6. Update README.md\nRemove any references to `cmd/dns/` or building the DNS tool locally.\n\n## Acceptance criteria\n- `cmd/dns/` directory removed\n- `go.mod` and `go.sum` removed\n- `dns.yml` workflow calls armstrong's reusable `dns-sync.yml`\n- CI still passes (no references to removed Go code)\n- The `dns/` CUE definitions directory is untouched",
+  "issue": "33",
+  "branch": "agent/20260414-0849-03bf",
+  "worktree": "/tmp/klaus-sessions/infra/20260414-0849-03bf",
+  "tmux_pane": "%20",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260407-1651-0aa4/logs/20260414-0849-03bf.jsonl",
+  "created_at": "2026-04-14T08:49:51-04:00",
+  "cost_usd": 0.48686644999999995,
+  "duration_ms": 168190,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/50",
+  "target_repo": "infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260414-0849-03bf"
+}
