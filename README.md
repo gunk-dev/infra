@@ -14,7 +14,7 @@ Deploy workflows delegate to reusable workflows in [gunk-dev/armstrong](https://
 nix develop
 ```
 
-Provides: `flyctl`, `cue`, `go`, `jq`, `skopeo`, `nixfmt`
+Provides: `flyctl`, `cue`, `jq`, `skopeo`, `nixfmt`
 
 ## Apps
 
@@ -32,7 +32,7 @@ Static site for gunk.dev served by Caddy on port 8080. The OCI image is built in
 
 ## DNS Management
 
-DNS records for `gunk.dev` are declared in CUE (`dns/gunk.dev.cue`) and synced to [Porkbun](https://porkbun.com) via a Go CLI tool.
+DNS records for `gunk.dev` are declared in CUE (`dns/gunk.dev.cue`) and synced to [Porkbun](https://porkbun.com) via the DNS tool in [gunk-dev/armstrong](https://github.com/gunk-dev/armstrong).
 
 ### Record definitions
 
@@ -42,37 +42,15 @@ All records are defined in `dns/gunk.dev.cue` using the `#DNSRecord` schema from
 # Validate DNS config
 cue vet ./dns
 
-# Export as JSON (this is what the sync tool reads)
+# Export as JSON
 cue export ./dns --out json
 ```
 
 ### Syncing records
 
-The `cmd/dns` tool reads the CUE export and converges Porkbun to match:
+On push to `main` (when `dns/**` changes), the DNS sync workflow calls armstrong's reusable workflow to converge Porkbun records to match the CUE definitions.
 
-```sh
-# Dry-run: see what would change (requires API keys)
-cue export ./dns --out json | go run ./cmd/dns sync
-
-# With pruning (deletes records not in CUE, skips NS/SOA/preview-*)
-cue export ./dns --out json | go run ./cmd/dns sync --prune
-```
-
-Requires `PORKBUN_API_KEY` and `PORKBUN_SECRET_KEY` environment variables.
-
-On push to `main` (when `dns/`, `cmd/dns/`, or `cue.mod/pkg/gunk.dev/armstrong/schema/dns.cue` change), the DNS sync workflow runs automatically.
-
-### Preview DNS records
-
-Preview CNAME records (`preview-{pr}.{app}.gunk.dev`) are managed automatically by the preview deploy/cleanup workflows. To manage manually:
-
-```sh
-# Create: preview-42.flux.gunk.dev -> flux-preview-42.fly.dev
-go run ./cmd/dns preview create flux 42
-
-# Delete
-go run ./cmd/dns preview delete flux 42
-```
+Preview CNAME records (`preview-{pr}.{app}.gunk.dev`) are managed automatically by the preview deploy/cleanup workflows.
 
 ## Build OCI image locally (Flux only)
 
@@ -136,8 +114,8 @@ cue export ./apps/web -t preview -t appName=gunk-web-preview-42 -e preview --out
 A CI workflow runs on every pull request and push to main:
 
 - **lint**: `nixfmt --check` and `nix flake check`
-- **validate-cue**: validates CUE schemas and verifies export for all environments (flux, balance, and web)
-- **build**: builds the OCI image (flux)
+- **validate-cue**: validates CUE schemas and verifies export for all environments (flux, balance, web)
+- **build**: builds OCI images (flux, gunk-web, balance) and runs smoke tests
 - **zizmor**: security lints GitHub Actions workflows
 
 ### Flux deployments
