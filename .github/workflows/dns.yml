@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   sync:
-    uses: gunk-dev/armstrong/.github/workflows/dns-sync.yml@main
+    uses: gunk-dev/armstrong/.github/workflows/dns-sync.yml@eb125e41213ac86305906adeb0cc328bc585efa4 # main
     secrets:
       PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
       PORKBUN_SECRET_KEY: ${{ secrets.PORKBUN_SECRET_KEY }}
