@@ -147,7 +147,7 @@ Triggered from the [gunk-web repo](https://github.com/gunk-dev/gunk-web) via `re
 
 ### Secrets
 
-Deploy workflows read `FLY_API_TOKEN` from GitHub **environments** (preview, staging, production), not repo-level secrets.
+Deploy workflows read `FLY_API_TOKEN` from GitHub **environments** (preview, staging, prod), not repo-level secrets.
 
 Preview and update workflows use a GitHub App for cross-repo PR comments and auto-merge PRs. `APP_ID` and `APP_PRIVATE_KEY` are stored in the **preview** and **automation** environments respectively.
 
