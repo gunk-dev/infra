@@ -2,6 +2,8 @@
 
 Fly.io infrastructure for [Flux](https://github.com/patflynn/flux), [Balance](https://github.com/patflynn/balance), and [Web](https://github.com/gunk-dev/gunk-web) (gunk.dev), managed with CUE and Nix.
 
+Deploy workflows delegate to reusable workflows in [gunk-dev/armstrong](https://github.com/gunk-dev/armstrong). CUE schemas (`#FlyApp`, `#DNSRecord`, etc.) live in `cue.mod/pkg/gunk.dev/armstrong/schema/`.
+
 ## Prerequisites
 
 - [Nix](https://nixos.org/) with flakes enabled
@@ -34,7 +36,7 @@ DNS records for `gunk.dev` are declared in CUE (`dns/gunk.dev.cue`) and synced t
 
 ### Record definitions
 
-All records are defined in `dns/gunk.dev.cue` using the `#DNSRecord` schema from `schema/dns.cue`. This includes email (MX, SPF, DKIM) and app CNAME records.
+All records are defined in `dns/gunk.dev.cue` using the `#DNSRecord` schema from `cue.mod/pkg/gunk.dev/armstrong/schema/dns.cue`. This includes email (MX, SPF, DKIM) and app CNAME records.
 
 ```sh
 # Validate DNS config
@@ -58,7 +60,7 @@ cue export ./dns --out json | go run ./cmd/dns sync --prune
 
 Requires `PORKBUN_API_KEY` and `PORKBUN_SECRET_KEY` environment variables.
 
-On push to `main` (when `dns/`, `cmd/dns/`, or `schema/dns.cue` change), the DNS sync workflow runs automatically.
+On push to `main` (when `dns/`, `cmd/dns/`, or `cue.mod/pkg/gunk.dev/armstrong/schema/dns.cue` change), the DNS sync workflow runs automatically.
 
 ### Preview DNS records
 
@@ -129,27 +131,6 @@ cue export ./apps/web -t preview -t appName=gunk-web-preview-42 -e preview --out
 | staging | `gunk-web-staging` | suspend | 1 |
 | prod | `gunk-web-prod` | off | 1 |
 
-## Deploy
-
-```sh
-# Preview (requires PR number)
-./scripts/deploy.sh flux preview 42
-./scripts/deploy.sh balance preview 42 registry.fly.io/balance-preview-42:sha
-./scripts/deploy.sh web preview 42 registry.fly.io/gunk-web-preview-42:sha
-
-# Staging
-./scripts/deploy.sh flux staging
-./scripts/deploy.sh balance staging "" registry.fly.io/balance-staging:sha
-./scripts/deploy.sh web staging "" registry.fly.io/gunk-web-staging:sha
-
-# Production
-./scripts/deploy.sh flux prod
-./scripts/deploy.sh balance prod "" registry.fly.io/balance-prod:sha
-./scripts/deploy.sh web prod "" registry.fly.io/gunk-web-prod:sha
-```
-
-Requires `FLY_API_TOKEN` in the environment and membership in the `gunk-dev` Fly org.
-
 ## CI
 
 A CI workflow runs on every pull request and push to main:
@@ -165,7 +146,7 @@ Triggered from the [flux repo](https://github.com/patflynn/flux) via `repository
 
 - **Preview**: `flux-preview` event on PR open/sync — deploys a per-PR preview app, comments the URL on the PR
 - **Preview cleanup**: `flux-preview-cleanup` event on PR close — destroys the preview app
-- **Staging**: `flux-staging` event on merge to main — deploys to `flux-staging`
+- **Staging**: `flux-staging` event on merge to main — triggers a flake.lock update PR with auto-merge, which deploys to `flux-staging` on merge
 - **Production**: Manual `workflow_dispatch` in this repo
 
 ### Balance deployments
@@ -174,20 +155,25 @@ Triggered from the [balance repo](https://github.com/patflynn/balance) via `repo
 
 - **Preview**: `balance-preview` event on PR open/sync — deploys a per-PR preview app, comments the URL on the PR
 - **Preview cleanup**: `balance-preview-cleanup` event on PR close — destroys the preview app
-- **Staging**: `balance-staging` event on merge to main — deploys to `balance-staging`
-- **Production**: Manual `workflow_dispatch` in this repo (requires `image` input)
+- **Staging**: `balance-staging` event on merge to main — triggers a flake.lock update PR with auto-merge, which deploys to `balance-staging` on merge
+- **Production**: Manual `workflow_dispatch` in this repo
 
 ### Web deployments
 
-The [gunk-web repo](https://github.com/gunk-dev/gunk-web) builds its own OCI image.
+Triggered from the [gunk-web repo](https://github.com/gunk-dev/gunk-web) via `repository_dispatch`. The gunk-web repo builds its own OCI image.
 
-- **Production**: Manual `workflow_dispatch` in this repo (requires `image` input)
+- **Preview**: `web-preview` event on PR open/sync — deploys a per-PR preview app, comments the URL on the PR
+- **Preview cleanup**: `web-preview-cleanup` event on PR close — destroys the preview app
+- **Staging**: `web-staging` event on merge to main — triggers a flake.lock update PR with auto-merge, which deploys to `gunk-web-staging` on merge
+- **Production**: Manual `workflow_dispatch` in this repo
 
 ### Secrets
 
 Deploy workflows read `FLY_API_TOKEN` from GitHub **environments** (preview, staging, production), not repo-level secrets.
 
-DNS workflows read `PORKBUN_API_KEY` and `PORKBUN_SECRET_KEY` from the `dns` environment (sync) and `preview` environment (preview create/delete).
+Preview and update workflows use a GitHub App for cross-repo PR comments and auto-merge PRs. `APP_ID` and `APP_PRIVATE_KEY` are stored in the **preview** and **automation** environments respectively.
+
+DNS workflows read `PORKBUN_API_KEY` and `PORKBUN_SECRET_KEY` from the `dns` environment.
 
 ### Flux repo setup
 
@@ -249,10 +235,3 @@ The balance repo needs to send `repository_dispatch` events to this repo, includ
 ```
 
 Requires an `INFRA_DISPATCH_TOKEN` secret (PAT with `repo` scope on `gunk-dev/infra`).
-
-## Cleanup
-
-```sh
-# Destroy a preview app
-./scripts/preview-cleanup.sh 42
-```
