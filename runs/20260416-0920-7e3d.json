@@ -1,0 +1,17 @@
+{
+  "id": "20260416-0920-7e3d",
+  "prompt": "Remove the .claude directory from the repository root. List its contents first with `ls -la .claude` so the PR description can accurately describe what's being removed, then `git rm -r .claude` and commit. Open a PR titled 'Remove .claude directory' with a body that lists the files removed. No other changes — don't touch any other files, don't add .gitignore entries, don't run formatters. If .claude doesn't exist in the repo, exit without creating a PR and report that finding.",
+  "issue": null,
+  "branch": "agent/20260416-0920-7e3d",
+  "worktree": "/tmp/klaus-sessions/infra/20260416-0920-7e3d",
+  "tmux_pane": "%2",
+  "budget": "5.00",
+  "log_file": "/home/patrick/.klaus/sessions/session-20260416-0912-4680/logs/20260416-0920-7e3d.jsonl",
+  "created_at": "2026-04-16T09:20:46-04:00",
+  "cost_usd": 0.22897824999999997,
+  "duration_ms": 104754,
+  "pr_url": "https://github.com/gunk-dev/infra/pull/53",
+  "target_repo": "infra",
+  "clone_dir": "/tmp/klaus-sessions/.repos/gunk-dev/infra",
+  "session_name": "20260416-0920-7e3d"
+}
