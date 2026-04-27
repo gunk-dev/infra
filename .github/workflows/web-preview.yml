@@ -9,7 +9,7 @@ permissions: {}
 jobs:
   preview:
     if: github.event.action == 'web-preview'
-    uses: gunk-dev/armstrong/.github/workflows/preview-fly.yml@a6d7477603edc714512ac3cb1e786f4f059e2c9c # main
+    uses: gunk-dev/armstrong/.github/workflows/preview-fly.yml@30beeb531dd35530a83a92527d6d4c237489e4df # main
     with:
       app-prefix: gunk-web-preview
       cue-path: ./apps/web
@@ -27,7 +27,7 @@ jobs:
 
   cleanup:
     if: github.event.action == 'web-preview-cleanup'
-    uses: gunk-dev/armstrong/.github/workflows/preview-fly.yml@a6d7477603edc714512ac3cb1e786f4f059e2c9c # main
+    uses: gunk-dev/armstrong/.github/workflows/preview-fly.yml@30beeb531dd35530a83a92527d6d4c237489e4df # main
     with:
       app-prefix: gunk-web-preview
       cue-path: ./apps/web
