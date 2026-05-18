@@ -116,11 +116,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1779050081,
-        "narHash": "sha256-ckfrRT7oHSsPV1OdAeQ6bUQ4TUEcBayoRqkESPJuCpM=",
+        "lastModified": 1779134465,
+        "narHash": "sha256-VwZtZsQIwNS2KW3SAWmvlIbx4jOakJWwbBh5HJHYAoA=",
         "owner": "gunk-dev",
         "repo": "flux",
-        "rev": "e483c4360053ec59d2b1f2f9c55981e42def079d",
+        "rev": "546d4c2e3bd71eb594e4ea0e3efce72fd964d146",
         "type": "github"
       },
       "original": {
@@ -157,11 +157,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1770949508,
-        "narHash": "sha256-HSnmKSgcBk6g+FzN3ZFHSTawMVG9phDswGdykqLqVnE=",
+        "lastModified": 1779125105,
+        "narHash": "sha256-bmXxiZyZAEbLFekQQv3toYmaCMxU8bd6xkUZLpAxMck=",
         "owner": "patflynn",
         "repo": "klaus",
-        "rev": "217b5ade007cbd659b0ad675811e5be24af781b1",
+        "rev": "156e5bbc2bfc90d493b662bd096dec8406c50f61",
         "type": "github"
       },
       "original": {
