@@ -116,11 +116,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1779361063,
-        "narHash": "sha256-YxZUDoOQ3wQNJhksRg1Ylb4b5JwO6NYOowzcfTPoAD0=",
+        "lastModified": 1779361493,
+        "narHash": "sha256-tHlQUYJgYKRWIyZuslJvuhcRW4sSsnrmp2iP1sQuPKs=",
         "owner": "gunk-dev",
         "repo": "flux",
-        "rev": "aaedfa215a5dca66d87e15ff27e28da72eb000aa",
+        "rev": "902ce0d2c57916a79b3c51750d3424276520363b",
         "type": "github"
       },
       "original": {
