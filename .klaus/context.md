@@ -6,8 +6,8 @@ Fly.io infrastructure-as-code for three apps consumed by their respective produc
 ## Tech stack
 - Nix flake (`flake.nix`) with `nixpkgs-unstable`; flake inputs include `flux`, `gunk-web`, and `balance` repos (`flake.nix:5-10`).
 - CUE for config; module is `gunk.dev/infra` at language version `v0.9.2` (`cue.mod/module.cue`).
-- Dev-shell tools: `flyctl`, `cue`, `jq`, `skopeo`, `nixfmt` (`flake.nix:84-91`).
-- OCI images built via `pkgs.dockerTools.buildLayeredImage` using `caddy` (`flake.nix:24-72`).
+- Dev-shell tools: `flyctl`, `cue`, `jq`, `skopeo`, `nixfmt` (`flake.nix:93-101`).
+- OCI images built via `pkgs.dockerTools.buildLayeredImage` using `caddy` (`flake.nix:31-83`).
 - GitHub Actions for CI and deployment (`.github/workflows/`).
 
 ## Entry points
@@ -85,8 +85,8 @@ No project-level test suite exists; CI's smoke test loads the built OCI image wi
 
 ## Gotchas
 - `apex` of `gunk.dev` uses `A`/`AAAA` records, not a CNAME, because CNAMEs are not allowed on a zone apex (`dns/gunk.dev.cue:28-30`).
-- The Balance OCI image is **not** built in this repo — it comes from the `balance` flake input (`flake.nix:23`) for local builds and from `client_payload.image` for deploys (`README.md:27,132`).
-- Preview cleanup must succeed for `*-preview-cleanup` events to remove the corresponding preview app and preview CNAME record (`README.md:53,134,143`).
+- The Balance OCI image is **not** built in this repo — it comes from the `balance` flake input (`flake.nix:27`) for local builds and from `client_payload.image` for deploys (`README.md:27,132`).
+- Preview cleanup must succeed for `*-preview-cleanup` events to remove the corresponding preview app and preview CNAME record (`README.md:53,126,135,144`).
 - Deploys rely on GitHub environments (`preview`, `staging`, `prod`, `dns`, `automation`) for secrets — not repo-level secrets (`README.md:148-154`).
 
 ## External dependencies
