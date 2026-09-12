@@ -1,7 +1,7 @@
 # Repository context
 
 ## Purpose
-Fly.io infrastructure-as-code for three apps consumed by their respective product repos: Flux (`patflynn/flux`), Balance (`patflynn/balance`), and Web/gunk.dev (`gunk-dev/gunk-web`). Fly app configuration is authored in CUE and exported to `fly.toml` at deploy time; DNS records for `gunk.dev` are also authored in CUE and synced to Porkbun. Deployments are driven by `repository_dispatch` events from the product repos and delegate to reusable workflows in `gunk-dev/armstrong`.
+Fly.io infrastructure-as-code for three apps consumed by their respective product repos: Flux (`patflynn/flux`), Balance (`patflynn/balance`), and Web/gunk.dev (`gunk-dev/gunk-web`). Fly app configuration is authored in CUE and exported to `fly.toml` at deploy time; DNS records for `gunk.dev` and `broken.dev` are also authored in CUE (one directory per zone under `dns/`) and synced to Porkbun. Deployments are driven by `repository_dispatch` events from the product repos and delegate to reusable workflows in `gunk-dev/armstrong`.
 
 ## Tech stack
 - Nix flake (`flake.nix`) with `nixpkgs-unstable`; flake inputs include `flux`, `gunk-web`, and `balance` repos (`flake.nix:5-10`).
@@ -14,12 +14,12 @@ Fly.io infrastructure-as-code for three apps consumed by their respective produc
 - `flake.nix` — Nix flake; exposes packages `default`/`oci-image` (Flux), `web-oci-image` (gunk-web), `balance-oci-image` (re-exports image built in the balance flake), and `devShells.default`.
 - `apps/{flux,balance,web}/base.cue` — base `#FlyApp` definitions, composed with per-environment files (`preview.cue`, `staging.cue`, `prod.cue`), gated by CUE `@if(<env>)` tags.
 - `apps/flux/Caddyfile` — Caddy config baked into the Flux OCI image (serves `/srv/www` with SPA fallback on `:8080`).
-- `dns/gunk.dev.cue` — declarative DNS records for `gunk.dev`.
+- `dns/<zone>/` — declarative DNS records, one CUE package `dns` per zone: `dns/gunk.dev/gunk.dev.cue` and `dns/broken.dev/broken.dev.cue`.
 - `cue.mod/pkg/gunk.dev/armstrong/schema/{fly.cue,dns.cue}` — vendored schemas (`#FlyApp`, `#HttpService`, `#HttpCheck`, `#DNSRecord`) used by app and DNS configs.
 
 ## Layout
 - `apps/` — per-app CUE configs (`flux/`, `balance/`, `web/`), each containing `base.cue` plus `preview.cue`, `staging.cue`, `prod.cue`. `apps/flux/` additionally holds `Caddyfile`.
-- `dns/` — CUE definitions of DNS records for `gunk.dev` (`gunk.dev.cue`).
+- `dns/` — CUE definitions of DNS records, one directory per zone: `gunk.dev/` and `broken.dev/`. Each is its own package `dns` declaring `domain` + `records`.
 - `cue.mod/` — CUE module root; `pkg/gunk.dev/armstrong/schema/` vendors `#FlyApp` and `#DNSRecord` schemas.
 - `.github/workflows/` — CI (`ci.yml`), DNS sync (`dns.yml`), and per-app `preview`/`staging`/`prod`/`update` workflows for flux, balance, and web.
 - `.github/dependabot.yml` — Dependabot config.
@@ -53,9 +53,11 @@ cue export ./apps/flux    -t preview -t appName=flux-preview-42      -e preview 
 cue export ./apps/balance -t preview -t appName=balance-preview-42   -e preview --out toml
 cue export ./apps/web     -t preview -t appName=gunk-web-preview-42  -e preview --out toml
 
-# DNS
-cue vet ./dns
-cue export ./dns --out json
+# DNS — one package per zone directory. The trailing slash on export is
+# required, else cue reads "gunk.dev" as a file and rejects the ".dev" extension.
+cue vet ./dns/...
+cue export ./dns/gunk.dev/ --out json
+for zone in dns/*/; do cue export "./${zone}" --out json; done | jq -s .
 ```
 
 Build OCI images locally:
@@ -72,27 +74,28 @@ nix flake check
 nix run nixpkgs#zizmor -- . --no-online-audits
 ```
 
-No project-level test suite exists; CI's smoke test loads the built OCI image with `docker load`, runs it on port 8080, and `curl -f http://localhost:8080/` (`.github/workflows/ci.yml:103-110`).
+No project-level test suite exists; CI's smoke test loads the built OCI image with `docker load`, runs it on port 8080, and `curl -f http://localhost:8080/` (`.github/workflows/ci.yml:110-117`).
 
 ## Conventions
-- `fly.toml` is never committed — it is generated at deploy time and is gitignored (`README.md:64`, `.gitignore`).
+- `fly.toml` is never committed — it is generated at deploy time and is gitignored (`README.md:82`, `.gitignore`).
 - App configs build on `_base: schema.#FlyApp` from `apps/<app>/base.cue`; environment files (`preview.cue`/`staging.cue`/`prod.cue`) start with `@if(<env>)` and define a single top-level value of the same name (e.g. `preview: _base & { ... }`). Export uses matching `-e <env>` and `-t <env>` flags.
 - Preview app names use the `@tag(appName)` mechanism in CUE (`apps/flux/preview.cue:5`), so callers must pass `-t appName=<name>` for preview exports.
 - All Fly apps listen on internal port `8080` (`apps/flux/base.cue`, `cue.mod/pkg/gunk.dev/armstrong/schema/fly.cue`, `apps/flux/Caddyfile`).
-- DNS records are added by appending an entry to the `records:` list in `dns/gunk.dev.cue`, conforming to `schema.#DNSRecord` from `cue.mod/pkg/gunk.dev/armstrong/schema/dns.cue`.
+- DNS records are added by appending an entry to the `records:` list in `dns/<zone>/<zone>.cue`, conforming to `schema.#DNSRecord` from `cue.mod/pkg/gunk.dev/armstrong/schema/dns.cue`. `ttl` is left unset to take the schema default (600). A new zone is a new `dns/<zone>/` directory plus enabling API Access on that domain in the Porkbun dashboard (a per-domain toggle).
 - Deploy/CI workflows pin actions by full commit SHA with version comments (e.g. `actions/checkout@de0fac2e...# v4` in `.github/workflows/ci.yml`).
 - Workflow jobs use `permissions: contents: read` at the top of `ci.yml` and explicit `persist-credentials: false` on checkout.
 
 ## Gotchas
-- `apex` of `gunk.dev` uses `A`/`AAAA` records, not a CNAME, because CNAMEs are not allowed on a zone apex (`dns/gunk.dev.cue:28-30`).
-- The Balance OCI image is **not** built in this repo — it comes from the `balance` flake input (`flake.nix:27`) for local builds and from `client_payload.image` for deploys (`README.md:27,132`).
-- Preview cleanup must succeed for `*-preview-cleanup` events to remove the corresponding preview app and preview CNAME record (`README.md:53,126,135,144`).
-- Deploys rely on GitHub environments (`preview`, `staging`, `prod`, `dns`, `automation`) for secrets — not repo-level secrets (`README.md:148-154`).
+- `apex` of `gunk.dev` uses `A`/`AAAA` records, not a CNAME, because CNAMEs are not allowed on a zone apex (`dns/gunk.dev/gunk.dev.cue:28-30`); `broken.dev` uses an apex `A` for the same reason.
+- `cue export ./dns/<zone>` without a trailing slash fails with `unknown file extension .dev` — cue treats the zone name as a filename. Always use `./dns/<zone>/`.
+- The Balance OCI image is **not** built in this repo — it comes from the `balance` flake input (`flake.nix:27`) for local builds and from `client_payload.image` for deploys (`README.md:27,150`).
+- Preview cleanup must succeed for `*-preview-cleanup` events to remove the corresponding preview app and preview CNAME record (`README.md:71,144,153,162`).
+- Deploys rely on GitHub environments (`preview`, `staging`, `prod`, `dns`, `automation`) for secrets — not repo-level secrets (`README.md:166-172`).
 
 ## External dependencies
 - **Fly.io** — runtime for all three apps; deploys via `flyctl` using `FLY_API_TOKEN` from per-environment GitHub secrets.
-- **Porkbun** — DNS provider for `gunk.dev`; synced via armstrong's DNS workflow using `PORKBUN_API_KEY` / `PORKBUN_SECRET_KEY`.
+- **Porkbun** — DNS provider for `gunk.dev` and `broken.dev`; synced via armstrong's DNS workflow using `PORKBUN_API_KEY` / `PORKBUN_SECRET_KEY`. API Access must be enabled per domain in the dashboard.
 - **gunk-dev/armstrong** — provides reusable deploy/DNS workflows and the vendored CUE schemas under `cue.mod/pkg/gunk.dev/armstrong/`.
 - **Product repos**: `patflynn/flux`, `patflynn/balance`, `gunk-dev/gunk-web` — emit `repository_dispatch` events into this repo and (for balance/web) supply pre-built OCI image references.
-- **Fastmail** — receives mail for `gunk.dev` via MX + DKIM records declared in `dns/gunk.dev.cue`.
-- **GitHub App** — used for cross-repo PR comments and auto-merge on flake.lock update PRs; `APP_ID` / `APP_PRIVATE_KEY` stored in `preview` and `automation` environments (`README.md:152`).
+- **Fastmail** — receives mail for `gunk.dev` via MX + DKIM records declared in `dns/gunk.dev/gunk.dev.cue`.
+- **GitHub App** — used for cross-repo PR comments and auto-merge on flake.lock update PRs; `APP_ID` / `APP_PRIVATE_KEY` stored in `preview` and `automation` environments (`README.md:170`).

@@ -32,23 +32,41 @@ Static site for gunk.dev served by Caddy on port 8080. The OCI image is built in
 
 ## DNS Management
 
-DNS records for `gunk.dev` are declared in CUE (`dns/gunk.dev.cue`) and synced to [Porkbun](https://porkbun.com) via the DNS tool in [gunk-dev/armstrong](https://github.com/gunk-dev/armstrong).
+DNS records are declared in CUE under `dns/` and synced to [Porkbun](https://porkbun.com) via the DNS tool in [gunk-dev/armstrong](https://github.com/gunk-dev/armstrong).
 
 ### Record definitions
 
-All records are defined in `dns/gunk.dev.cue` using the `#DNSRecord` schema from `cue.mod/pkg/gunk.dev/armstrong/schema/dns.cue`. This includes email (MX, SPF, DKIM) and app CNAME records.
+Each zone lives in its own directory, `dns/<zone>/`, which is a CUE package `dns` declaring a `domain` and a `records` list conforming to the `#DNSRecord` schema from `cue.mod/pkg/gunk.dev/armstrong/schema/dns.cue`:
+
+| Zone | Directory | Contents |
+| --- | --- | --- |
+| `gunk.dev` | `dns/gunk.dev/gunk.dev.cue` | email (MX, SPF, DKIM) and app CNAME records, plus apex `A`/`AAAA` |
+| `broken.dev` | `dns/broken.dev/broken.dev.cue` | apex and `www` `A` records pointing at the Google Cloud load balancer |
+
+Records leave `ttl` unset to take the schema default (600).
 
 ```sh
-# Validate DNS config
-cue vet ./dns
+# Validate every zone
+cue vet ./dns/...
 
-# Export as JSON
-cue export ./dns --out json
+# Export one zone as JSON — the trailing slash is required, or cue reads
+# "gunk.dev" as a filename and rejects the ".dev" extension
+cue export ./dns/gunk.dev/ --out json
+
+# Export every zone as the combined array the sync tool consumes
+for zone in dns/*/; do cue export "./${zone}" --out json; done | jq -s .
 ```
+
+### Adding a zone
+
+1. Add a `dns/<zone>/` directory containing a CUE package `dns` with `domain` and `records`. CI and the sync workflow pick it up automatically — no workflow edits needed.
+2. Enable **API Access** on that domain in the Porkbun dashboard. This is a per-domain toggle: the shared `PORKBUN_API_KEY` is useless on a domain that has not enabled it, and the sync will fail for that zone.
+
+The zone must also exist at Porkbun before a sync can converge it, and pointing the domain's nameservers at Porkbun at its current registrar is a separate manual step.
 
 ### Syncing records
 
-On push to `main` (when `dns/**` changes), the DNS sync workflow calls armstrong's reusable workflow to converge Porkbun records to match the CUE definitions.
+On push to `main` (when `dns/**` changes), the DNS sync workflow calls armstrong's reusable workflow, which vets and exports each zone directory in sorted order and syncs them all in one run. The sync tool rejects duplicate domains before making any API call.
 
 Preview CNAME records (`preview-{pr}.{app}.gunk.dev`) are managed automatically by the preview deploy/cleanup workflows.
 

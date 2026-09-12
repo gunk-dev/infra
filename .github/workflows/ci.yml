@@ -71,8 +71,15 @@ jobs:
 
       - name: Validate DNS config
         run: |
-          nix develop -c cue vet ./dns
-          nix develop -c cue export ./dns --out json > /dev/null
+          set -euo pipefail
+          nix develop -c cue vet ./dns/...
+          # Each dns/<zone>/ is its own CUE package. The trailing slash is
+          # required: without it cue reads "gunk.dev" as a file and rejects
+          # the ".dev" extension.
+          for zone in dns/*/; do
+            echo "== ${zone} =="
+            nix develop -c cue export "./${zone}" --out json > /dev/null
+          done
 
   build:
     runs-on: ubuntu-latest
