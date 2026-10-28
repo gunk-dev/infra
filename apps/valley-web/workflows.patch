@@ -1,0 +1,55 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index c7be9b1..b364303 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -50,6 +50,8 @@ jobs:
+             nix develop -c cue vet ./apps/${app} -t prod
+             nix develop -c cue vet ./apps/${app} -t preview
+           done
++          # valley-web has a prod environment alone.
++          nix develop -c cue vet ./apps/valley-web -t prod
+ 
+       - name: Verify staging export
+         run: |
+@@ -62,6 +64,7 @@ jobs:
+           nix develop -c cue export ./apps/flux -t prod -e prod --out toml > /dev/null
+           nix develop -c cue export ./apps/balance -t prod -e prod --out toml > /dev/null
+           nix develop -c cue export ./apps/web -t prod -e prod --out toml > /dev/null
++          nix develop -c cue export ./apps/valley-web -t prod -e prod --out toml > /dev/null
+ 
+       - name: Verify preview export
+         run: |
+@@ -92,6 +95,8 @@ jobs:
+             name: gunk-web
+           - image: balance-oci-image
+             name: balance
++          - image: valley-web-oci-image
++            name: valley-web-edge
+     steps:
+       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+         with:
+diff --git a/.github/workflows/valley-web-prod.yml b/.github/workflows/valley-web-prod.yml
+new file mode 100644
+index 0000000..dfd5dd2
+--- /dev/null
++++ b/.github/workflows/valley-web-prod.yml
+@@ -0,0 +1,19 @@
++name: Deploy Valley Web Production
++
++on:
++  workflow_dispatch:
++
++permissions:
++  contents: read
++
++jobs:
++  deploy:
++    uses: gunk-dev/armstrong/.github/workflows/deploy-fly.yml@a6d7477603edc714512ac3cb1e786f4f059e2c9c # main
++    with:
++      app-name: valley-web-prod
++      cue-path: ./apps/valley-web
++      environment: prod
++      nix-target: valley-web-oci-image
++      image-name: valley-web-edge
++    secrets:
++      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
