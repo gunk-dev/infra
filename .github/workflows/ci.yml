@@ -50,6 +50,8 @@ jobs:
             nix develop -c cue vet ./apps/${app} -t prod
             nix develop -c cue vet ./apps/${app} -t preview
           done
+          # valley-web has a prod environment alone.
+          nix develop -c cue vet ./apps/valley-web -t prod
 
       - name: Verify staging export
         run: |
@@ -62,6 +64,7 @@ jobs:
           nix develop -c cue export ./apps/flux -t prod -e prod --out toml > /dev/null
           nix develop -c cue export ./apps/balance -t prod -e prod --out toml > /dev/null
           nix develop -c cue export ./apps/web -t prod -e prod --out toml > /dev/null
+          nix develop -c cue export ./apps/valley-web -t prod -e prod --out toml > /dev/null
 
       - name: Verify preview export
         run: |
@@ -92,6 +95,8 @@ jobs:
             name: gunk-web
           - image: balance-oci-image
             name: balance
+          - image: valley-web-oci-image
+            name: valley-web-edge
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
