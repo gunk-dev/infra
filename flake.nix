@@ -7,6 +7,7 @@
     flux.url = "github:gunk-dev/flux";
     gunk-web.url = "github:gunk-dev/gunk-web";
     balance.url = "github:gunk-dev/balance";
+    the-valley.url = "github:gunk-dev/the-valley";
   };
 
   outputs =
@@ -17,6 +18,7 @@
       flux,
       gunk-web,
       balance,
+      the-valley,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
