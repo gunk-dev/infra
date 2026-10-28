@@ -1,6 +1,6 @@
 # infra
 
-Fly.io infrastructure for [Flux](https://github.com/patflynn/flux), [Balance](https://github.com/patflynn/balance), and [Web](https://github.com/gunk-dev/gunk-web) (gunk.dev), managed with CUE and Nix.
+Fly.io infrastructure for [Flux](https://github.com/patflynn/flux), [Balance](https://github.com/patflynn/balance), [Web](https://github.com/gunk-dev/gunk-web) (gunk.dev), and the [valley](https://github.com/gunk-dev/the-valley) web edge, managed with CUE and Nix.
 
 Deploy workflows delegate to reusable workflows in [gunk-dev/armstrong](https://github.com/gunk-dev/armstrong). CUE schemas (`#FlyApp`, `#DNSRecord`, etc.) live in `cue.mod/pkg/gunk.dev/armstrong/schema/`.
 
@@ -29,6 +29,12 @@ React + Fastify monorepo app serving both API endpoints and static files on port
 ### Web
 
 Static site for gunk.dev served by Caddy on port 8080. The OCI image is built in the [gunk-web repo](https://github.com/gunk-dev/gunk-web) and passed to deploy workflows via `inputs.image`. Serves the apex domain (`gunk.dev`) and `www.gunk.dev`.
+
+### Valley web
+
+The-valley's read-only web edge, in `yyz`. The valley host pushes signed exports of public projects to `valley-web-receive` over HTTPS on port 8443, and `valley-web` serves them on 80/443; the edge never connects back. The image, `nix build .#valley-web-oci-image`, derives from the-valley's `valley-web-image`. On Fly, its `valley-web-edge` command runs both programs on one Machine, each as its own user, over the volume at `/var/lib/valley-web`, and exits when either exits. Its default command serves an empty export on port 8080, for smoke tests: valley-web answers 503 until the first export is active.
+
+The receiver reads the bearer token from the `VALLEY_WEB_RECEIVER_TOKEN` secret (base64-encoded, as `[[files]]` requires) and the publisher's verifier line from `apps/valley-web/verifiers`. It refuses to start while that file holds no verifier line.
 
 ## DNS Management
 
@@ -86,6 +92,7 @@ All Fly.io configuration lives in CUE. `fly.toml` is never checked in — it's g
 cue vet ./apps/flux/...
 cue vet ./apps/balance/...
 cue vet ./apps/web/...
+cue vet ./apps/valley-web -t prod
 
 # Export a specific environment
 cue export ./apps/flux -t staging -e staging --out toml
@@ -127,13 +134,19 @@ cue export ./apps/web -t preview -t appName=gunk-web-preview-42 -e preview --out
 | staging | `gunk-web-staging` | suspend | 1 |
 | prod | `gunk-web-prod` | off | 1 |
 
+#### Valley web
+
+| Environment | App name | auto_stop | min_machines |
+|---|---|---|---|
+| prod | `valley-web-prod` | off | 1 |
+
 ## CI
 
 A CI workflow runs on every pull request and push to main:
 
 - **lint**: `nixfmt --check` and `nix flake check`
-- **validate-cue**: validates CUE schemas and verifies export for all environments (flux, balance, web)
-- **build**: builds OCI images (flux, gunk-web, balance) and runs smoke tests
+- **validate-cue**: validates CUE schemas and verifies export for all environments (flux, balance, web, valley-web)
+- **build**: builds OCI images (flux, gunk-web, balance, valley-web-edge) and runs smoke tests
 - **zizmor**: security lints GitHub Actions workflows
 
 ### Flux deployments
@@ -162,6 +175,10 @@ Triggered from the [gunk-web repo](https://github.com/gunk-dev/gunk-web) via `re
 - **Preview cleanup**: `web-preview-cleanup` event on PR close — destroys the preview app
 - **Staging**: `web-staging` event on merge to main — triggers a flake.lock update PR with auto-merge, which deploys to `gunk-web-staging` on merge
 - **Prod**: Manual `workflow_dispatch` in this repo
+
+### Valley web deployments
+
+- **Prod**: Manual `workflow_dispatch` in this repo. There is no staging or preview.
 
 ### Secrets
 
