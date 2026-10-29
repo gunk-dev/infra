@@ -87,10 +87,11 @@
 
         # The valley web edge on one Fly Machine: valley-web-edge runs
         # valley-web-receive and valley-web, each as its own user from
-        # the-valley's image, over the volume at /var/lib/valley-web, and
-        # exits when either exits. Its arguments go to the receiver. It
-        # runs as root to hand a new volume, and the token file Fly
-        # writes, to the receiver before it drops to the two users.
+        # the-valley's image, over the store whose descriptor is
+        # /var/lib/valley-web/store on the volume, and exits when either
+        # exits. Its arguments go to the receiver. It runs as root to hand
+        # a new volume, and the token file Fly writes, to the receiver
+        # before it drops to the two users.
         valleyWebEdge = pkgs.writeShellApplication {
           name = "valley-web-edge";
           runtimeInputs = [
@@ -98,11 +99,16 @@
             pkgs.util-linux
           ];
           text = ''
+            # The volume is the receiver's, and valley-web reads and
+            # searches it through the group. The receiver writes the
+            # descriptor here and its payloads in v2/ beside it, and
+            # nothing else on the volume.
             state=/var/lib/valley-web
+            store=$state/store
             chown valley-web-receive:valley-web "$state"
             chmod 0750 "$state"
-            # A new ext4 volume holds root's lost+found, and the receiver
-            # walks the whole state directory to measure it.
+            # A new ext4 volume holds root's lost+found, which goes to the
+            # receiver with the rest of the volume.
             if [ -d "$state/lost+found" ]; then chown -R valley-web-receive:valley-web "$state/lost+found"; fi
             chmod 0755 /etc/valley-web
             chmod 0444 /etc/valley-web/verifiers
@@ -112,10 +118,17 @@
             # environment, from both programs.
             as() { setpriv --reuid="$1" --regid=valley-web --clear-groups --reset-env -- "''${@:2}"; }
             as valley-web-receive ${valley.valley-web-receive}/bin/valley-web-receive \
-              --state "$state" --listen :8081 \
+              --state "$store" --listen :8081 \
               --verifiers /etc/valley-web/verifiers --token-file /etc/valley-web/token "$@" &
             receiver=$!
-            as valley-web ${valley.valley-web}/bin/valley-web --state "$state" --listen :8080 &
+            # valley-web opens only a store that exists, and the receiver
+            # makes a new one on its first start, writing the descriptor
+            # last.
+            until [ -f "$store" ]; do
+              kill -0 "$receiver" 2>/dev/null || exit 1
+              sleep 0.1
+            done
+            as valley-web ${valley.valley-web}/bin/valley-web --state "$store" --listen :8080 &
             web=$!
             trap 'kill -TERM "$receiver" "$web" 2>/dev/null' TERM INT
             wait -n || true
@@ -125,15 +138,49 @@
           '';
         };
 
-        # valley-web answers 503 on every path until a first export is
-        # active, and a smoke test wants 200: the image's default command
-        # serves this export of no projects instead of the volume.
-        valleyWebSmokeState = pkgs.runCommand "valley-web-smoke-state" { } ''
-          mkdir -p $out/exports/1
-          echo '{"schema":"valley-web-export/v1","collected":"1970-01-01T00:00:00Z","projects":[]}' \
-            > $out/exports/1/export.json
-          ln -s exports/1 $out/active
-        '';
+        # valley-web answers 503 on every path until its store holds an
+        # authorization and an active export, and a smoke test wants 200:
+        # the image's default command serves this store instead of the
+        # volume. It holds what valley-web reads of a receiver's store
+        # once the receiver has admitted an authorization that names no
+        # project and activated an export of none. valley-web reads the
+        # stored authorization without checking its signature, which the
+        # receiver checked, so it is signed with the-valley's test key
+        # (web/export/exporttest), which no receiver trusts.
+        valleyWebSmokeState =
+          pkgs.runCommand "valley-web-smoke-state"
+            {
+              nativeBuildInputs = [ pkgs.openssl ];
+            }
+            ''
+              mkdir -p $out/v2/generations/1/repos
+              echo 'the-valley/web-store/v2' > $out/store
+              echo '{"schema":"valley-web-export/v2","collected":"1970-01-01T00:00:00Z","projects":[]}' \
+                > $out/v2/generations/1/export.json
+              echo 1 > $out/v2/high-water
+              ln -s generations/1 $out/v2/current
+              touch $out/v2/serving.lock
+
+              # The key is the PKCS #8 prefix of an Ed25519 key and the
+              # test key's seed.
+              { printf '\x30\x2e\x02\x01\x00\x30\x05\x06\x03\x2b\x65\x70\x04\x22\x04\x20'
+                printf 'the-valley web export test key!!'
+              } > key.der
+              openssl pkey -inform DER -in key.der -pubout -outform DER | tail -c 32 > public
+              printf '%s\n' \
+                the-valley/web-authorization/v1 \
+                'instance smoke' \
+                'destination smoke' \
+                'sequence 1' \
+                'checked 1970-01-01T00:00:00Z' \
+                > text
+              # A signature line is the signer's name and, in base64, the
+              # first four bytes of SHA-256 over the name, a newline, the
+              # algorithm byte and the public key, then the signature.
+              { printf 'smoke\n\x01'; cat public; } | openssl dgst -sha256 -binary | head -c 4 > signature
+              openssl pkeyutl -sign -inkey key.der -keyform DER -rawin -in text >> signature
+              { cat text; echo; echo "— smoke $(base64 -w0 signature)"; } > $out/v2/authorization
+            '';
 
         valleyWebOciImage = pkgs.dockerTools.buildLayeredImage {
           name = "valley-web-edge";
@@ -153,7 +200,7 @@
               "--"
               "${valley.valley-web}/bin/valley-web"
               "--state"
-              "${valleyWebSmokeState}"
+              "${valleyWebSmokeState}/store"
               "--listen"
               ":8080"
             ];
