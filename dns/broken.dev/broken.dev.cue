@@ -5,9 +5,10 @@ import "gunk.dev/armstrong/schema"
 domain: "broken.dev"
 
 records: [...schema.#DNSRecord] & [
-	// Web (broken.dev) — apex and www both point at the Google Cloud load
-	// balancer serving the live site. Apex requires A since CNAME is not
-	// allowed on a zone apex.
-	{type: "A", name: "", content: "34.117.196.131"},
-	{type: "A", name: "www", content: "34.117.196.131"},
+	// Web (broken.dev): the valley web edge, Fly app valley-web-prod, on its
+	// dedicated addresses. Apex requires A/AAAA since CNAME is not allowed on
+	// a zone apex.
+	{type: "A", name: "", content: "149.248.210.213"},
+	{type: "AAAA", name: "", content: "2a09:8280:1::1d3:2186:0"},
+	{type: "CNAME", name: "www", content: "valley-web-prod.fly.dev"},
 ]
