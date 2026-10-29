@@ -1,1 +1,2 @@
-# The publisher's verifier line goes here: on the valley host, run `sudo cat /var/lib/valley-web-publish/verifier`.
+# The publisher's verifier line, from `sudo cat /var/lib/valley-web-publish/verifier` on the valley host.
+classic-laddie/web-export+ca59ab0b+AeDIcwEjUUfkAuKVIAR/sgDwHyy39U7OofTPdnSADaVd
