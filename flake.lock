@@ -340,11 +340,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1793369103,
-        "narHash": "sha256-i/EI99gvrbYXzAQ4vG85pSRPrLfVOtWy39Ckj8Nlnm4=",
+        "lastModified": 1793382335,
+        "narHash": "sha256-UwAUl8qYskbcIKBlAneA1IeVqSjlSmqhS5WDdFC2wJM=",
         "owner": "gunk-dev",
         "repo": "the-valley",
-        "rev": "fefe7833f700bac51bac7fd20ff37066e34db7b3",
+        "rev": "dfb348e147eb0808902259af5a9ff88fe15f0388",
         "type": "github"
       },
       "original": {
