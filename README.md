@@ -32,7 +32,7 @@ Static site for gunk.dev served by Caddy on port 8080. The OCI image is built in
 
 ### Valley web
 
-The-valley's read-only web edge, in `yyz`. The valley host pushes a signed authorization and signed exports to `valley-web-receive` over HTTPS on port 8443, and `valley-web` serves the projects the authorization lets anyone read on 80/443; the edge never connects back. The image, `nix build .#valley-web-oci-image`, derives from the-valley's `valley-web-image`. On Fly, its `valley-web-edge` command runs both programs on one Machine, each as its own user, over the store whose descriptor is `/var/lib/valley-web/store` on the volume, and exits when either exits. The receiver keeps the store's payloads in `v2/` beside the descriptor, and writes nothing else on the volume. Its default command serves an empty store on port 8080, for smoke tests: valley-web answers 503 until its store holds a signed authorization and an active export.
+The-valley's read-only web edge, in `yyz`. The valley host pushes a signed authorization and signed exports to `valley-web-receive` over HTTPS on port 8443, and `valley-web` serves each project on 80/443 to the readers its authorization names, `anyone` or a named principal; the edge never connects back. A reader signs in at `https://broken.dev` with a read link from the valley host, which `valley-web` redeems once for a session. `www.broken.dev` reaches the same edge, but sign-in takes one origin, so `www` serves every reader as `anyone`. The image, `nix build .#valley-web-oci-image`, derives from the-valley's `valley-web-image`. On Fly, its `valley-web-edge` command runs both programs on one Machine, each as its own user, over the store whose descriptor is `/var/lib/valley-web/store` on the volume, and exits when either exits. The receiver keeps the store's payloads in `v2/` beside the descriptor, and writes nothing else on the volume. `valley-web` keeps readers' sessions and the read links they have used in `browser/` beside them, which is valley-web's alone: `valley-web:valley-web`, mode `0700`. The launcher creates `browser/` on a new volume and keeps its contents across restarts and deploys, and refuses to start if it is a symbolic link or not a directory. The image's default command serves an empty store on port 8080, for smoke tests: valley-web answers 503 until its store holds a signed authorization and an active export.
 
 The receiver reads the bearer token from the `VALLEY_WEB_RECEIVER_TOKEN` secret (base64-encoded, as `[[files]]` requires) and the publisher's verifier line from `apps/valley-web/verifiers`. It refuses to start while that file holds no verifier line.
 
@@ -144,7 +144,7 @@ cue export ./apps/web -t preview -t appName=gunk-web-preview-42 -e preview --out
 
 A CI workflow runs on every pull request and push to main:
 
-- **lint**: `nixfmt --check` and `nix flake check`
+- **lint**: `nixfmt --check` and `nix flake check`, which runs the `valley-web-edge` launcher as root in a NixOS VM
 - **validate-cue**: validates CUE schemas and verifies export for all environments (flux, balance, web, valley-web)
 - **build**: builds OCI images (flux, gunk-web, balance, valley-web-edge) and runs smoke tests
 - **zizmor**: security lints GitHub Actions workflows
